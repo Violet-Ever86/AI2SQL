@@ -91,68 +91,84 @@ class AI2SQLService:
             prompt = self.sql_generator.build_sql_prompt(question, self.schema)
             llm_output = self.llm_client.complete(prompt)
 
-            if verbose:
-                print(f"\n--- 模型输出（模板选择） ---\n{llm_output}")
+            # 输出模型原始输出（始终输出到终端）
+            print(f"\n--- 模型输出（模板选择） ---\n{llm_output}")
 
-            # 尝试提取模板信息用于显示
+            # 尝试提取模板信息用于显示（包括模板匹配度）
             try:
-                template_id, params_dict = self.sql_generator.extract_template_and_params(llm_output)
-                template = self.template_manager.get_template(template_id)
-                result["template_info"] = {
-                    "template_id": template_id,
-                    "description": template['desc'],
-                    "params": params_dict,
-                }
-                if verbose:
-                    print(f"\n--- 选择的模板 ---\n模板ID: {template_id}\n描述: {template['desc']}\n参数: {json.dumps(params_dict, ensure_ascii=False)}")
+                template_id, params_dict, _free_sql, template_score = self.sql_generator.extract_template_and_params(llm_output)
+
+                # 只有在不是自由模式时才从模板管理器中取描述
+                if template_id and template_id.lower() != "free":
+                    template = self.template_manager.get_template(template_id)
+                    result["template_info"] = {
+                        "template_id": template_id,
+                        "description": template['desc'],
+                        "params": params_dict,
+                        "score": template_score,
+                    }
+
+                    # 始终输出到终端
+                    print(f"\n--- 选择的模板 ---")
+                    print(f"模板ID: {template_id}")
+                    print(f"描述: {template['desc']}")
+                    print(f"匹配度(score): {template_score:.3f}")
+                    print(f"参数: {json.dumps(params_dict, ensure_ascii=False)}")
                     print(f"\n--- 调试：参数详情 ---")
                     for key, value in params_dict.items():
                         print(f"  {key}: {repr(value)} (type: {type(value).__name__})")
+                else:
+                    # 自由模式，仅输出解析结果
+                    result["template_info"] = {
+                        "template_id": "free",
+                        "description": "自由生成SQL（未使用预定义模板）",
+                        "params": params_dict,
+                        "score": template_score,
+                    }
+                    print(f"\n--- 自由模式（未使用模板） ---")
+                    print(f"匹配度(score): {template_score:.3f}")
+                    print(f"解析到的参数: {json.dumps(params_dict, ensure_ascii=False)}")
+
             except Exception as e:
-                if verbose:
-                    print(f"\n--- 模型输出解析错误 ---\n错误: {e}\n原始输出: {llm_output}")
+                print(f"\n--- 模型输出解析错误 ---\n错误: {e}\n原始输出: {llm_output}")
 
             # 生成SQL
             sql = self.sql_generator.extract_sql(llm_output)
             result["sql"] = sql
 
-            if verbose:
-                print(f"\n--- 生成的SQL ---\n{sql}")
+            # 始终输出SQL到终端
+            print(f"\n--- SQL ---\n{sql}")
 
             # 验证SQL
             if not self.sql_validator.validate_sql(sql, self.allowed_tables):
                 error_msg = "生成的 SQL 未通过校验"
                 result["error"] = error_msg
-                if verbose:
-                    print(f"\n错误：{error_msg}\nSQL: {sql}")
+                print(f"\n错误：{error_msg}\nSQL: {sql}")
                 return result
 
             # 执行查询
-            if verbose:
-                print("\n--- 执行 SQL ---\n", sql)
-
             rows = self.database.run_query(sql)
             result["rows"] = rows
 
-            if verbose:
-                print(f"\n--- 查询结果（前5行，实际{len(rows)}行） ---")
-                print(json.dumps(rows[:5], ensure_ascii=False, indent=2))
+            # 始终输出查询结果到终端
+            print(f"\n--- 查询结果（前5行，实际{len(rows)}行） ---")
+            print(json.dumps(rows[:5], ensure_ascii=False, indent=2))
 
             # 生成总结
             summary = self.summarizer.summarize(question, sql, rows)
             result["summary"] = summary
             result["success"] = True
 
-            if verbose:
-                print("\n--- 总结 ---\n", summary)
+            # 始终输出总结到终端
+            print("\n--- 总结 ---\n", summary)
 
         except Exception as e:
             error_msg = f"查询处理失败: {str(e)}"
             result["error"] = error_msg
-            if verbose:
-                print(f"\n错误：{error_msg}")
-                import traceback
-                traceback.print_exc()
+            # 始终输出错误信息到终端
+            print(f"\n错误：{error_msg}")
+            import traceback
+            traceback.print_exc()
 
         return result
 
