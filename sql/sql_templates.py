@@ -4,115 +4,26 @@ from sql.sql_template_sql import SQL_TEMPLATE_SQL
 
 # SQL 模板定义：每个模板包含ID、描述、SQL模板（用 {参数} 占位）
 SQL_TEMPLATES = [
+    # 通用工作查询典型模板（1：带班；2：跟班；3：带班+跟班）
     {
-        "id": "T1",
-        "desc": "查询指定人员最近的带班记录（通过姓名）",
-        "sql": SQL_TEMPLATE_SQL["T1"],
+        "id": "M1",
+        "desc": "模板1：查询指定人员的带班记录（通过姓名，按时间倒序，限制条数）",
+        "sql": SQL_TEMPLATE_SQL["M1"],
     },
     {
-        "id": "T2",
-        "desc": "查询指定人员最近的跟班记录（通过姓名，需关联人员表）",
-        "sql": SQL_TEMPLATE_SQL["T2"],
+        "id": "M2",
+        "desc": "模板2：查询指定人员的跟班记录（通过姓名，按时间倒序，限制条数）",
+        "sql": SQL_TEMPLATE_SQL["M2"],
     },
     {
-        "id": "T4",
-        "desc": "查询最近N条带班记录（不限人员）",
-        "sql": SQL_TEMPLATE_SQL["T4"],
+        "id": "M3",
+        "desc": "模板3：查询指定人员的带班+跟班工作记录（通过姓名，合并结果按时间倒序）",
+        "sql": SQL_TEMPLATE_SQL["M3"],
     },
     {
-        "id": "T5",
-        "desc": "查询最近N条跟班记录（不限人员）",
-        "sql": SQL_TEMPLATE_SQL["T5"],
-    },
-    {
-        "id": "T6",
-        "desc": "查询最近N条工作记录（带班+跟班合并，不限人员）",
-        "sql": SQL_TEMPLATE_SQL["T6"],
-    },
-    {
-        "id": "T7",
-        "desc": "按档案编号查询人员最近的跟班记录",
-        "sql": SQL_TEMPLATE_SQL["T7"],
-    },
-    {
-        "id": "T8",
-        "desc": "查询指定日期范围的带班记录（不限人员）",
-        "sql": SQL_TEMPLATE_SQL["T8"],
-    },
-    {
-        "id": "T9",
-        "desc": "查询指定人员在指定日期的带班记录（人员+日期）",
-        "sql": SQL_TEMPLATE_SQL["T9"],
-    },
-    {
-        "id": "T10",
-        "desc": "查询指定人员在指定日期范围的带班记录（人员+日期范围）",
-        "sql": SQL_TEMPLATE_SQL["T10"],
-    },
-    {
-        "id": "T11",
+        "id": "M4",
         "desc": "查询人员信息表中某人的详细信息（通过姓名）",
-        "sql": SQL_TEMPLATE_SQL["T11"],
-    },
-    {
-        "id": "T12",
-        "desc": "统计人员信息表的总人数",
-        "sql": SQL_TEMPLATE_SQL["T12"],
-    },
-    {
-        "id": "T13",
-        "desc": "按状态统计人员数量（例如在职/离职/停职等）",
-        "sql": SQL_TEMPLATE_SQL["T13"],
-    },
-    {
-        "id": "T15",
-        "desc": "查询指定人员在指定日期的跟班记录（人员+日期）",
-        "sql": SQL_TEMPLATE_SQL["T15"],
-    },
-    {
-        "id": "T16",
-        "desc": "查询指定人员在指定日期范围的跟班记录（人员+日期范围）",
-        "sql": SQL_TEMPLATE_SQL["T16"],
-    },
-    {
-        "id": "T20",
-        "desc": "按手机号查询人员详细信息",
-        "sql": SQL_TEMPLATE_SQL["T20"],
-    },
-    {
-        "id": "T21",
-        "desc": "按档案编号查询最近的带班记录（含联系方式）",
-        "sql": SQL_TEMPLATE_SQL["T21"],
-    },
-    {
-        "id": "T22",
-        "desc": "查询指定日期范围的带班记录（单日时 start=end）",
-        "sql": SQL_TEMPLATE_SQL["T22"],
-    },
-    {
-        "id": "T23",
-        "desc": "查询指定日期范围的跟班记录（单日时 start=end）",
-        "sql": SQL_TEMPLATE_SQL["T23"],
-    },
-    {
-        "id": "T24",
-        "desc": "统计人员信息表中指定职务的人数（例：网格长）",
-        "sql": SQL_TEMPLATE_SQL["T24"],
-    },
-    {
-        "id": "T25",
-        "desc": "统计人员信息表中正式员工的人数（字段：正式员工=1）",
-        "sql": SQL_TEMPLATE_SQL["T25"],
-    },
-    {
-        "id": "T26",
-        "desc": "查询指定人员最近N条工作记录（带班+跟班合并，按时间倒序）",
-        "sql": SQL_TEMPLATE_SQL["T26"],
-    },
-    {
-        "id": "T27",
-        "desc": "按档案编号查询最近N条工作记录（带班+跟班合并，按时间倒序）",
-        "sql": SQL_TEMPLATE_SQL["T27"],
+        "sql": SQL_TEMPLATE_SQL["M4"],
     },
 ]
 
