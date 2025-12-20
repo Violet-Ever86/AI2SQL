@@ -16,7 +16,7 @@ DB_CONF = {
     "port": int(os.getenv("DB_PORT", "3306")),
     "user": os.getenv("DB_USER", "root"),
     "password": os.getenv("DB_PASSWORD", "123456"),
-    "db": os.getenv("DB_NAME", "my_project"),
+    "db": os.getenv("DB_NAME", "demo"),
     "charset": "utf8mb4",
 }
 
@@ -133,9 +133,28 @@ def fetch_schema():
     return "\n".join(lines).strip()
 
 
+def get_relationship_constraints():
+    """返回关联关系与时间约定内容"""
+    return """
+关联关系与时间约定：
+- 带班作业记录表.带班人员档案编号 与 大桥局人员信息表.档案编号 对应。
+- 跟班作业记录表.跟班人员 与 大桥局人员信息表.姓名 对应。
+- 带班作业记录表.联合带班人员档号 与 大桥局人员信息表.档案编号 对应。
+- 跟班作业记录表.跟班人员档案编号 与 大桥局人员信息表.档案编号 对应。
+- 若问题没指定时间范围，建议在 SQL 中按时间字段降序并 LIMIT 20。
+- 每日管控计划.ID 与 每日管控计划_子表.每日管控计划_ID 对应
+- 每日管控计划_子表.工序id字符串 与 安全责任单元履职清单主表.ID 对应
+
+- 每日管控计划.管控单元id 与 责任单元字典.id 对应。
+- 班前讲话班组字典.安全责任单元 与 责任单元字典.id 对应。
+-
+""".strip()
+
+
 def main():
     parser = argparse.ArgumentParser(description="Dump MySQL schema to text")
-    parser.add_argument("--out", "-o", type=str, help="输出文件路径（默认 stdout）")
+    parser.add_argument("--out", "-o", type=str, default="./schema_prompt.txt", help="输出文件路径（默认: ./schema_prompt.txt）")
+    parser.add_argument("--stdout", action="store_true", help="输出到标准输出而不是文件")
     args = parser.parse_args()
 
     schema_str = fetch_schema()
@@ -153,11 +172,33 @@ def main():
     except Exception:
         pass
 
-    if args.out:
-        with open(args.out, "w", encoding="utf-8") as f:
-            f.write(schema_str)
+    # 添加关联关系与时间约定
+    relationship_constraints = get_relationship_constraints()
+    full_content = schema_str + "\n\n" + relationship_constraints
+    
+    if args.stdout:
+        # 输出到标准输出
+        print(full_content)
     else:
-        print(schema_str)
+        # 写入文件（默认行为）
+        # 获取绝对路径用于调试
+        abs_path = os.path.abspath(args.out)
+        sys.stderr.write(f"[dump_schema] 正在写入文件: {abs_path}\n")
+        sys.stderr.write(f"[dump_schema] 文件大小: {len(full_content)} 字符, 行数: {full_content.count(chr(10)) + 1}\n")
+        
+        # 确保目录存在
+        if os.path.dirname(args.out):
+            os.makedirs(os.path.dirname(args.out), exist_ok=True)
+        
+        with open(args.out, "w", encoding="utf-8") as f:
+            f.write(full_content)
+        
+        # 验证文件是否写入成功
+        if os.path.exists(args.out):
+            file_size = os.path.getsize(args.out)
+            sys.stderr.write(f"[dump_schema] 文件写入成功！文件大小: {file_size} 字节\n")
+        else:
+            sys.stderr.write(f"[dump_schema] 警告：文件写入后不存在！\n")
 
 
 if __name__ == "__main__":
