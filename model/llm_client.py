@@ -1,4 +1,5 @@
 import json
+import time
 import requests
 from typing import Dict
 
@@ -48,9 +49,23 @@ class LLMClient:
                 "temperature": temperature,
             }
 
-        resp = requests.post(url, json=payload, headers=headers, timeout=60)
-        resp.raise_for_status()
-        data = resp.json()
+        # 为LLM请求增加简单的重试机制，缓解偶发的连接被远程中断问题
+        max_retries = 3
+        last_exception = None
+        for attempt in range(1, max_retries + 1):
+            try:
+                resp = requests.post(url, json=payload, headers=headers, timeout=60)
+                resp.raise_for_status()
+                data = resp.json()
+                break
+            except requests.exceptions.RequestException as e:
+                last_exception = e
+                # 连接被远程主机重置等网络类错误，稍等后重试
+                print(f"\n警告：第 {attempt} 次调用 LLM 接口失败：{e}")
+                if attempt == max_retries:
+                    # 重试多次仍失败，向上抛出，让上层捕获并展示错误
+                    raise
+                time.sleep(1.0)
 
         if isinstance(data, dict):
             choices = data.get("choices") or []

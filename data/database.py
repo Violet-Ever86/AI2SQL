@@ -1,6 +1,7 @@
 import pymysql
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 from typing import Dict, List
+import decimal
 
 
 class Database:
@@ -14,10 +15,19 @@ class Database:
         """将数据库行中的日期/时间对象转换为字符串，以便JSON序列化"""
         serialized = {}
         for key, value in row.items():
-            if isinstance(value, (date, datetime)):
+            if value is None:
+                serialized[key] = None
+            elif isinstance(value, (date, datetime)):
                 serialized[key] = value.isoformat()
-            elif isinstance(value, time):
+            elif isinstance(value, (time, timedelta)):
+                # time 和 timedelta 都转换为字符串
                 serialized[key] = str(value)
+            elif isinstance(value, decimal.Decimal):
+                # Decimal 类型转换为 float
+                serialized[key] = float(value)
+            elif isinstance(value, (bytes, bytearray)):
+                # 二进制数据转换为字符串
+                serialized[key] = value.decode('utf-8', errors='ignore')
             else:
                 serialized[key] = value
         return serialized

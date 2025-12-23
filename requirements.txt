@@ -2,3 +2,5 @@ pymysql
 requests
 python-dotenv
 cryptography
+flask
+flask-cors
