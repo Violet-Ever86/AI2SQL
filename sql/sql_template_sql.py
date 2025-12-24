@@ -1,11 +1,11 @@
 """SQL模板的SQL语句映射表。"""
 
-# 每个模板ID对应的原始SQL字符串（已精简为 M1~M4 四个）
+# 每个模板ID对应的原始SQL字符串（M1~M6）
 SQL_TEMPLATE_SQL = {
     # M1：按姓名查询带班记录（只要日期和工序，按时间倒序，最多50条）
     "M1": """SELECT b.带班日期, b.带班作业工序及地点
 FROM 带班作业记录表 AS b
-JOIN 大桥局人员信息表 AS p ON b.带班人员档案编号 = p.档案编号
+JOIN 大桥局人员信息表 AS p ON b.带班人员 = p.档案编号
 WHERE p.姓名 = '{person_name}'
 ORDER BY COALESCE(b.FGC_CreateDate, b.带班日期, b.FGC_LastModifyDate) DESC
 LIMIT {limit}""",
@@ -27,7 +27,7 @@ FROM (
          b.带班作业工序及地点 AS 作业内容,
          b.带班日期 AS 发生日期
   FROM 带班作业记录表 AS b
-  JOIN 大桥局人员信息表 AS p1 ON b.带班人员档案编号 = p1.档案编号
+  JOIN 大桥局人员信息表 AS p1 ON b.带班人员 = p1.档案编号
   WHERE p1.姓名 = '{person_name}'
   UNION ALL
   SELECT COALESCE(g.FGC_CreateDate, g.日期, g.FGC_LastModifyDate) AS ts,
@@ -48,5 +48,30 @@ LIMIT {limit}""",
 FROM 大桥局人员信息表
 WHERE 姓名 = '{person_name}'
 LIMIT 1""",
+
+    # M5：按班组名称查询跟班记录（只要日期和关键工序描述，按时间倒序，最多50条）
+    "M5": """SELECT g.日期, g.重点部位_关键工序_特殊时段情况
+FROM 跟班作业记录表 AS g
+JOIN 班前讲话班组字典 AS d ON g.班组 = d.班组ID
+WHERE d.班组 = '{team_name}'
+ORDER BY COALESCE(g.FGC_CreateDate, g.日期, g.FGC_LastModifyDate) DESC
+LIMIT {limit}""",
+
+    # M6：按管控计划内容查询状态（内容可能在主表的施工计划作业内容或子表的分项名称中，按时间倒序，最多50条）
+    "M6": """SELECT DISTINCT
+    p.状态,
+    p.计划日期,
+    p.施工计划作业内容,
+    s.分项名称,
+    COALESCE(p.FGC_CreateDate, p.计划日期, p.FGC_LastModifyDate) AS sort_time
+FROM 每日管控计划 AS p
+LEFT JOIN 每日管控计划_子表 AS s
+    ON p.ID = s.每日管控计划_ID
+WHERE (
+    p.施工计划作业内容 LIKE '%{plan_content}%'
+ OR s.分项名称       LIKE '%{plan_content}%'
+)
+ORDER BY sort_time DESC
+LIMIT {limit}""",
 }
 

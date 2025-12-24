@@ -25,7 +25,18 @@ SQL_TEMPLATES = [
         "desc": "查询人员信息表中某人的详细信息（通过姓名）",
         "sql": SQL_TEMPLATE_SQL["M4"],
     },
+    {
+        "id": "M5",
+        "desc": "模板5：查询指定班组的跟班记录（通过班组名称，按时间倒序，限制条数）",
+        "sql": SQL_TEMPLATE_SQL["M5"],
+    },
+    {
+        "id": "M6",
+        "desc": "模板6：查询管控计划内容的状态（通过管控计划内容，内容可能在每日管控计划_子表.分项名称或每日管控计划.施工计划作业内容中，按时间倒序，限制条数）",
+        "sql": SQL_TEMPLATE_SQL["M6"],
+    },
 ]
+
 
 
 class SQLTemplateManager:
