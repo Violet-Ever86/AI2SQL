@@ -58,20 +58,38 @@ ORDER BY COALESCE(g.FGC_CreateDate, g.日期, g.FGC_LastModifyDate) DESC
 LIMIT {limit}""",
 
     # M6：按管控计划内容查询状态（内容可能在主表的施工计划作业内容或子表的分项名称中，按时间倒序，最多50条）
-    "M6": """SELECT DISTINCT
-    p.状态,
+    "M6": """SELECT 
     p.计划日期,
+    p.管控责任人,
     p.施工计划作业内容,
+    p.状态 AS 计划状态,
     s.分项名称,
-    COALESCE(p.FGC_CreateDate, p.计划日期, p.FGC_LastModifyDate) AS sort_time
+    s.工序名称,
+    s.风险研判,
+    s.管控措施,
+    s.关键工序,
+    s.领导带班,
+    s.跟班作业,
+    leader.姓名 AS 带班领导姓名,
+    follower.姓名 AS 跟班人员姓名,
+    duty.带班作业工序及地点,
+    duty.带班期间工作内容,
+    duty.带班注意事项及要求,
+    follow.安全质量__管控情况__,
+    follow.过程偏离或达不到安全质量目标情况及处理措施,
+    follow.状态 AS 跟班记录状态,
+    duty.状态 AS 带班记录状态
 FROM 每日管控计划 AS p
-LEFT JOIN 每日管控计划_子表 AS s
-    ON p.ID = s.每日管控计划_ID
-WHERE (
-    p.施工计划作业内容 LIKE '%{plan_content}%'
- OR s.分项名称       LIKE '%{plan_content}%'
-)
-ORDER BY sort_time DESC
-LIMIT {limit}""",
+LEFT JOIN 责任单元字典 AS ru ON p.管控单元id = ru.ID
+LEFT JOIN 每日管控计划_子表 AS s ON p.ID = s.每日管控计划_ID
+LEFT JOIN 大桥局人员信息表 AS leader ON s.带班领导档案 = leader.档案编号
+LEFT JOIN 大桥局人员信息表 AS follower ON s.跟班人档案 = follower.档案编号
+LEFT JOIN 带班作业记录表 AS duty ON s.ID = duty.工单子表ID 
+    AND DATE(duty.带班日期) = DATE(p.计划日期)
+LEFT JOIN 跟班作业记录表 AS follow ON s.ID = follow.工单子表ID 
+    AND DATE(follow.日期) = DATE(p.计划日期)
+WHERE p.计划日期 = '{date}'
+    AND ru.责任单元名称 LIKE '%{unit_name}%'
+ORDER BY s.ID, p.ID""",
 }
 

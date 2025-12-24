@@ -96,7 +96,7 @@ class SQLGenerator:
     -带班作业记录表.工单子表ID 与 每日管控计划_子表.ID 对应，带班作业记录表.工单子表ID10 就说明 这个记录是每日管控计划子表ID10中的计划的带班记录
     -跟班作业记录表.工单子表ID 与 每日管控计划_子表.ID 对应，跟班作业记录表.工单子表ID10 就说明 这个记录是每日管控计划子表ID10中的计划的跟班记录
     -管控计划内容在每日管控计划_子表.分项名称和每日管控计划.施工计划作业内容中间
-        例如管控计划内容为“2掌子面正常开挖进尺，仰拱钢筋绑扎，二衬铺设防水板”可能是每日管控计划_子表.分项名称和每日管控计划.施工计划作业内容的一部分
+        例如管控计划内容为“掌子面正常开挖进尺，仰拱钢筋绑扎，二衬铺设防水板”可能是每日管控计划_子表.分项名称和每日管控计划.施工计划作业内容的一部分
 - “某人带班了什么 / 最近带了哪些班？” (一定是某人的名字 )→ 使用 M1：按姓名查询带班作业记录表，返回【带班日期、带班作业工序及地点】，按时间倒序，LIMIT<=50。
 - “某人跟班了什么 / 最近跟了哪些班？” → 使用 M2：按姓名查询跟班作业记录表，返回【日期、重点部位_关键工序_特殊时段情况】，按时间倒序，LIMIT<=50。
   **注意**：这里的"某人"必须是人员姓名（如"王飞"、"罗康康"），不是班组名。
@@ -111,14 +111,14 @@ class SQLGenerator:
   - **不要**使用M6处理以下情况：
     * "跟班任务XXX的管控计划是几号" → 应该使用自由SQL，通过跟班作业记录表.重点部位_关键工序_特殊时段情况匹配，然后通过工单ID关联到每日管控计划
     * "带班任务XXX的管控计划" → 应该使用自由SQL，通过带班作业记录表.带班作业工序及地点匹配，然后通过工单ID关联到每日管控计划
-  - M6只用于：已知管控计划内容（如"掌子面正常开挖进尺"），想查询这个内容对应的管控计划状态
+  - M6用于，知道具体作业地点和时间，需要查询管控计划详情
 - 
 - **重要区分规则**：
   - 如果问题中提到的是人名（如"王飞"、"罗康康"、"张三"等常见人名格式），使用 M2（按姓名查询跟班记录）
   - 如果问题中提到的是班组名（如"武汉化工"、"第一班组"、"XX公司"、"XX班组"等），使用 M5（按班组名称查询跟班记录）
   - 如果问题中明确包含"班组"、"公司"等关键词，优先使用 M5
   - 如果问题中只提到名称且没有明确是"班组"或"公司"，根据名称特征判断：人名通常2-4个汉字，班组名可能更长或包含"公司"、"班组"等词
-  - **M6使用场景**：问题明确提到"管控计划内容"或"管控计划"+"内容"，且不是通过跟班/带班任务来查找管控计划
+  - **M6使用场景**：问题明确提到"管控计划"，且不是通过跟班/带班任务来查找管控计划
   - **不要用M6的场景**：如果问题是"跟班任务XXX的管控计划"或"带班任务XXX的管控计划"，应该使用自由SQL模式，通过跟班作业记录表/带班作业记录表的工单ID关联到每日管控计划
 - 如果问题超出以上典型场景，且你能根据 schema 自己写出安全的 SQL，可以使用 template_id="free" 并直接返回 sql。
 
@@ -127,7 +127,7 @@ class SQLGenerator:
   {{"template_id": "M1", "params": {{"person_name": "王飞", "limit": 20}}, "score": 0.95}}
   {{"template_id": "M2", "params": {{"person_name": "罗康康", "limit": 20}}, "score": 0.94}}
   {{"template_id": "M5", "params": {{"team_name": "武汉化工", "limit": 20}}, "score": 0.93}}
-  {{"template_id": "M6", "params": {{"plan_content": "掌子面正常开挖进尺", "limit": 20}}, "score": 0.92}}
+  {{"template_id": "M6", "params": {{"unit_name": "对山门隧道", "limit": 20}}, "score": 0.92}}
 - 自由生成：
   {{"template_id": "free", "sql": "SELECT ... LIMIT 20", "score": 0.0}}
 """
@@ -163,8 +163,8 @@ class SQLGenerator:
 {{"template_id": "M4", "params": {{"person_name": "谢雁成"}}, "score": 0.9}}
 说明：谢雁成是人名，使用M4
 
-问：查询管控计划内容"掌子面正常开挖进尺"的状态？
-{{"template_id": "M6", "params": {{"plan_content": "掌子面正常开挖进尺", "limit": 20}}, "score": 0.92}}
+问：2025年3月5号路基L21的管控计划详情？
+{{"template_id": "M6", "params": {{"unit_name": "路基L21", "limit": 20}}, "score": 0.92}}
 说明：查询管控计划内容的状态，使用M6
 
 问：跟班任务"掌子面初期支护，仰拱衬砌"的管控计划是几号？
@@ -344,13 +344,6 @@ class SQLGenerator:
             # 规范化参数（保留所有原始参数）
             params = self.param_normalizer.normalize_params(params)
 
-            # 如果模板选择了T9但没有target_date，则自动回退到T26
-            if template_id == "T9":
-                target_date = params.get("target_date", "")
-                if not target_date:
-                    template_id = "T26"
-                    params.pop("target_date", None)
-
             return template_id, params, sql_text, score_val
         except Exception as e:
             print(f"[DEBUG] _extract_from_dict 异常: {type(e).__name__}: {e}")
@@ -375,7 +368,7 @@ class SQLGenerator:
         param_patterns = {
             "person_name": r'"person_name"\s*:\s*"([^"]+)"',
             "team_name": r'"team_name"\s*:\s*"([^"]+)"',
-            "plan_content": r'"plan_content"\s*:\s*"([^"]+)"',
+            "unit_name": r'"unit_name"\s*:\s*"([^"]+)"',
             "archive_no": r'"archive_no"\s*:\s*"([^"]+)"',
             "start_date": r'"start_date"\s*:\s*"([^"]+)"',
             "end_date": r'"end_date"\s*:\s*"([^"]+)"',
@@ -423,7 +416,7 @@ class SQLGenerator:
             default_params = {
                 "person_name": "",
                 "team_name": "",
-                "plan_content": "",
+                "unit_name": "",
                 "archive_no": "",
                 "start_date": "1900-01-01",
                 "end_date": "2099-12-31",
