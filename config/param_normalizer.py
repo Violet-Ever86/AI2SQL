@@ -67,6 +67,8 @@ class ParamNormalizer:
         start_date = ParamNormalizer.normalize_date_str(normalized.get("start_date", ""), is_end=False)
         end_date = ParamNormalizer.normalize_date_str(normalized.get("end_date", ""), is_end=True)
         target_date = ParamNormalizer.normalize_date_str(normalized.get("target_date", ""), is_end=False)
+        # 规范化date参数（用于M6模板）
+        date_val = ParamNormalizer.normalize_date_str(normalized.get("date", ""), is_end=False)
         if start_date and not end_date:
             end_date = ParamNormalizer.normalize_date_str(start_date, is_end=True)
         if start_date:
@@ -75,6 +77,8 @@ class ParamNormalizer:
             normalized["end_date"] = end_date
         if target_date:
             normalized["target_date"] = target_date
+        if date_val:
+            normalized["date"] = date_val
 
         return normalized
 

@@ -35,8 +35,11 @@ class SQLGenerator:
 """ + templates_desc + """
 
 参数说明（需要在 JSON 中给出的字段）：
-- template_id: 模板ID，取值为 "M1" / "M2" / "M3" / "M4" / "M5" / "M6" /"free"
+- template_id: 模板ID，取值为 "M1" / "M2" / "M3" / "M4" / "M5" / "M6" / "free"
 - person_name: 人员姓名（如"王飞"、"谢雁成"），当使用 M1/M2/M3/M4 时必须提供
+- team_name: 班组名称（如"武汉化工"、"第一班组"），当使用 M5 时必须提供
+- unit_name: 单元名称/地点（如"对门山隧道"、"路基L21"），当使用 M6 时必须提供
+- date: 日期（格式：YYYY-MM-DD，如"2025-04-01"），当使用 M6 时必须提供。可以从问题中提取日期，支持"2025年4月1号"、"2025-04-01"等格式
 - limit: 返回条数（默认20，SQL 内部会限制最大为 50）
 - sql: 仅在 template_id="free" 时使用，表示你自由生成的完整 SQL 字符串
 - score: 匹配度（0~1 的小数），表示你对所选模板或 SQL 的置信度；自由模式可以用 0.0
@@ -104,13 +107,15 @@ class SQLGenerator:
 - “某人的详细信息（档案编号、岗位、职务、手机号、状态、所属部门、所属项目）？” → 使用 M4：按姓名查询大桥局人员信息表。
 - "某班组的跟班记录 / 查询某班组的跟班作业 / 某公司班组的跟班记录" → 使用 M5：通过班前讲话班组字典.班组查询跟班作业记录表，返回【日期、重点部位_关键工序_特殊时段情况】，按时间倒序，LIMIT<=50。
   **注意**：这里的"某班组"必须是班组名称（如"武汉化工"、"第一班组"、"XX公司班组"），不是人员姓名。如果问题中包含"班组"、"公司"等关键词，或者名称看起来像组织/单位名称，应使用M5而不是M2。
-- "查询管控计划内容的状态 / 某管控计划内容的状态是什么" → 使用 M6：通过管控计划内容查询每日管控计划的状态，内容可能在每日管控计划_子表.分项名称或每日管控计划.施工计划作业内容中，返回【状态、计划日期、施工计划作业内容、分项名称】，按时间倒序，LIMIT<=50。
-  **重要区分**：
-  - M6用于直接查询"管控计划内容"的状态，问题中应该明确提到"管控计划内容"或"管控计划"+"内容"
+- "查询某日期某单元的管控计划详情 / 某日期某地点的管控计划" → 使用 M6：通过日期和单元名称（地点）查询每日管控计划的详细信息。
+  **M6使用要求**：
+  - M6必须同时提供两个参数：date（日期，格式YYYY-MM-DD）和unit_name（单元名称/地点）
+  - 当问题中包含日期（如"2025年4月1号"、"2025-04-01"）和地点/单元名称（如"对门山隧道"、"路基L21"）时，应使用M6
+  - M6用于查询指定日期和指定单元的管控计划详情，返回计划状态、施工内容、分项名称等完整信息
   - **不要**使用M6处理以下情况：
     * "跟班任务XXX的管控计划是几号" → 应该使用自由SQL，通过跟班作业记录表.重点部位_关键工序_特殊时段情况匹配，然后通过工单ID关联到每日管控计划
     * "带班任务XXX的管控计划" → 应该使用自由SQL，通过带班作业记录表.带班作业工序及地点匹配，然后通过工单ID关联到每日管控计划
-  - M6用于，知道具体作业地点和时间，需要查询管控计划详情
+    * 如果问题中没有明确日期，不要使用M6
 - 
 - **重要区分规则**：
   - 如果问题中提到的是人名（如"王飞"、"罗康康"、"张三"等常见人名格式），使用 M2（按姓名查询跟班记录）
@@ -126,7 +131,7 @@ class SQLGenerator:
   {{"template_id": "M1", "params": {{"person_name": "王飞", "limit": 20}}, "score": 0.95}}
   {{"template_id": "M2", "params": {{"person_name": "罗康康", "limit": 20}}, "score": 0.94}}
   {{"template_id": "M5", "params": {{"team_name": "武汉化工", "limit": 20}}, "score": 0.93}}
-  {{"template_id": "M6", "params": {{"unit_name": "对山门隧道", "limit": 20}}, "score": 0.92}}
+  {{"template_id": "M6", "params": {{"date": "2025-04-01", "unit_name": "对门山隧道", "limit": 20}}, "score": 0.92}}
 - 自由生成：
   {{"template_id": "free", "sql": "SELECT ... LIMIT 20", "score": 0.0}}
 """
@@ -163,8 +168,8 @@ class SQLGenerator:
 说明：谢雁成是人名，使用M4
 
 问：2025年3月5号路基L21的管控计划详情？
-{{"template_id": "M6", "params": {{"unit_name": "路基L21", "date": "2025-04-01"}}, "score": 0.92}}
-说明：查询管控计划内容的状态，使用M6
+{{"template_id": "M6", "params": {{"date": "2025-03-05", "unit_name": "路基L21", "limit": 20}}, "score": 0.92}}
+说明：问题包含日期（2025年3月5号）和单元名称（路基L21），使用M6，必须同时提供date和unit_name参数
 
 问：跟班任务"掌子面初期支护，仰拱衬砌"的管控计划是几号？
 {{"template_id": "free", "sql": "SELECT p.计划日期, p.ID, g.重点部位_关键工序_特殊时段情况 FROM 跟班作业记录表 AS g JOIN 每日管控计划 AS p ON g.工单ID = p.ID WHERE g.重点部位_关键工序_特殊时段情况 LIKE '%掌子面初期支护%' OR g.重点部位_关键工序_特殊时段情况 LIKE '%仰拱衬砌%' ORDER BY COALESCE(p.FGC_CreateDate, p.计划日期, p.FGC_LastModifyDate) DESC LIMIT 20", "score": 0.0}}
@@ -172,16 +177,6 @@ class SQLGenerator:
 
 问：简单查一下最近的记录（你可以自由生成 SQL）
 {{"template_id": "free", "sql": "SELECT ... LIMIT 20", "score": 0.0}}
-"""
-        prompt = f"""{system_rules}
-
-可用的表结构：
-{schema_text}
-{examples}
-
-现在请回答：
-问：{question}
-输出（仅JSON，不要其他文字）：
 """
         prompt = f"""{system_rules}
 
@@ -369,6 +364,7 @@ class SQLGenerator:
             "team_name": r'"team_name"\s*:\s*"([^"]+)"',
             "unit_name": r'"unit_name"\s*:\s*"([^"]+)"',
             "archive_no": r'"archive_no"\s*:\s*"([^"]+)"',
+            "date": r'"date"\s*:\s*"([^"]+)"',
             "start_date": r'"start_date"\s*:\s*"([^"]+)"',
             "end_date": r'"end_date"\s*:\s*"([^"]+)"',
             "target_date": r'"target_date"\s*:\s*"([^"]+)"',
@@ -405,6 +401,15 @@ class SQLGenerator:
         """根据模板ID和参数生成SQL"""
         template = self.template_manager.get_template(template_id)
 
+        # 验证必需参数
+        required_params = template.get("required_params", [])
+        missing_params = []
+        for param in required_params:
+            if param not in params or not params[param]:
+                missing_params.append(param)
+        if missing_params:
+            raise ValueError(f"模板参数缺失: {', '.join(missing_params)}")
+
         # 规范化参数
         params = self.param_normalizer.normalize_params(params)
 
@@ -417,7 +422,7 @@ class SQLGenerator:
                 "team_name": "",
                 "unit_name": "",
                 "archive_no": "",
-                "date":"",
+                "date": "",
                 "start_date": "1900-01-01",
                 "end_date": "2099-12-31",
                 "target_date": "",
