@@ -34,9 +34,8 @@ class SQLGenerator:
 可用模板列表：
 """ + templates_desc + """
 
-
 参数说明（需要在 JSON 中给出的字段）：
-- template_id: 模板ID，取值为 "M1" / "M2" / "M3" / "M4" / "free"
+- template_id: 模板ID，取值为 "M1" / "M2" / "M3" / "M4" / "M5" / "M6" /"free"
 - person_name: 人员姓名（如"王飞"、"谢雁成"），当使用 M1/M2/M3/M4 时必须提供
 - limit: 返回条数（默认20，SQL 内部会限制最大为 50）
 - sql: 仅在 template_id="free" 时使用，表示你自由生成的完整 SQL 字符串
@@ -164,7 +163,7 @@ class SQLGenerator:
 说明：谢雁成是人名，使用M4
 
 问：2025年3月5号路基L21的管控计划详情？
-{{"template_id": "M6", "params": {{"unit_name": "路基L21", "limit": 20}}, "score": 0.92}}
+{{"template_id": "M6", "params": {{"unit_name": "路基L21", "date": "2025-04-01"}}, "score": 0.92}}
 说明：查询管控计划内容的状态，使用M6
 
 问：跟班任务"掌子面初期支护，仰拱衬砌"的管控计划是几号？
@@ -418,6 +417,7 @@ class SQLGenerator:
                 "team_name": "",
                 "unit_name": "",
                 "archive_no": "",
+                "date":"",
                 "start_date": "1900-01-01",
                 "end_date": "2099-12-31",
                 "target_date": "",
