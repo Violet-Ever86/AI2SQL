@@ -2,23 +2,21 @@
 
 # 每个模板ID对应的原始SQL字符串（M1~M6）
 SQL_TEMPLATE_SQL = {
-    # M1：按姓名查询带班记录（只要日期和工序，按时间倒序，最多50条）
+    # M1：按姓名查询带班记录（只要日期和工序，按时间倒序）
     "M1": """SELECT b.带班日期, b.带班作业工序及地点
 FROM 带班作业记录表 AS b
 JOIN 大桥局人员信息表 AS p ON b.带班人员档案编号 = p.档案编号
 WHERE p.姓名 = '{person_name}'
-ORDER BY COALESCE(b.FGC_CreateDate, b.带班日期, b.FGC_LastModifyDate) DESC
-LIMIT {limit}""",
+ORDER BY COALESCE(b.FGC_CreateDate, b.带班日期, b.FGC_LastModifyDate) DESC""",
 
-    # M2：按姓名查询跟班记录（只要日期和关键工序描述，按时间倒序，最多50条）
+    # M2：按姓名查询跟班记录（只要日期和关键工序描述，按时间倒序）
     "M2": """SELECT g.日期, g.重点部位_关键工序_特殊时段情况 
 FROM 跟班作业记录表 AS g
 JOIN 大桥局人员信息表 AS p ON g.跟班人员档案编号 = p.档案编号
 WHERE p.姓名 = '{person_name}'
-ORDER BY COALESCE(g.FGC_CreateDate, g.日期, g.FGC_LastModifyDate) DESC
-LIMIT {limit}""",
+ORDER BY COALESCE(g.FGC_CreateDate, g.日期, g.FGC_LastModifyDate) DESC""",
 
-    # M3：按姓名查询带班+跟班合并的工作记录（统一结构，按时间倒序，最多50条）
+    # M3：按姓名查询带班+跟班合并的工作记录（统一结构，按时间倒序）
     "M3": """SELECT ts AS 时间, 类型, 人员, 作业内容, 发生日期
 FROM (
   SELECT COALESCE(b.FGC_CreateDate, b.带班日期, b.FGC_LastModifyDate) AS ts,
@@ -40,24 +38,21 @@ FROM (
     ON (g.跟班人员档案编号 = p2.档案编号 OR g.跟班人员 = p2.姓名)
   WHERE p2.姓名 = '{person_name}'
 ) AS t
-ORDER BY ts DESC
-LIMIT {limit}""",
+ORDER BY ts DESC""",
 
     # M4：按姓名查询人员详细信息
     "M4": """SELECT 档案编号, 姓名, 岗位, 职务, 手机号, 状态, 所属部门, 所属项目
 FROM 大桥局人员信息表
-WHERE 姓名 = '{person_name}'
-LIMIT 1""",
+WHERE 姓名 = '{person_name}'""",
 
-    # M5：按班组名称查询跟班记录（只要日期和关键工序描述，按时间倒序，最多50条）
+    # M5：按班组名称查询跟班记录（只要日期和关键工序描述，按时间倒序）
     "M5": """SELECT g.日期, g.重点部位_关键工序_特殊时段情况
 FROM 跟班作业记录表 AS g
 JOIN 班前讲话班组字典 AS d ON g.班组 = d.班组ID
 WHERE d.班组 = '{team_name}'
-ORDER BY COALESCE(g.FGC_CreateDate, g.日期, g.FGC_LastModifyDate) DESC
-LIMIT {limit}""",
+ORDER BY COALESCE(g.FGC_CreateDate, g.日期, g.FGC_LastModifyDate) DESC""",
 
-    # M6：按管控计划内容查询状态（内容可能在主表的施工计划作业内容或子表的分项名称中，按时间倒序，最多50条）
+    # M6：按管控计划内容查询状态（内容可能在主表的施工计划作业内容或子表的分项名称中，按时间倒序）
     "M6": """SELECT 
     p.计划日期,
     p.管控责任人,

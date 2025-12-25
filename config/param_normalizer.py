@@ -53,16 +53,6 @@ class ParamNormalizer:
         # 创建新字典，保留所有原始参数
         normalized = dict(params)
 
-        # 处理 limit：默认20，非数字或None则重置为20，最大50
-        limit_val = normalized.get("limit", 20)
-        if not isinstance(limit_val, int) or limit_val is None:
-            limit_val = 20
-        if limit_val > 50:
-            limit_val = 50
-        if limit_val <= 0:
-            limit_val = 20
-        normalized["limit"] = limit_val
-
         # 规范化日期
         start_date = ParamNormalizer.normalize_date_str(normalized.get("start_date", ""), is_end=False)
         end_date = ParamNormalizer.normalize_date_str(normalized.get("end_date", ""), is_end=True)
