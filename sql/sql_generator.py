@@ -40,7 +40,7 @@ class SQLGenerator:
 - team_name: 班组名称（如"武汉化工"、"第一班组"），当使用 M5 时必须提供
 - unit_name: 单元名称/地点（如"对门山隧道"、"路基L21"），当使用 M6 时必须提供
 - date: 日期（格式：YYYY-MM-DD，如"2025-04-01"），当使用 M6 时必须提供。可以从问题中提取日期，支持"2025年4月1号"、"2025-04-01"等格式
-- sql: 仅在 template_id="free" 时使用，表示你自由生成的完整 SQL 字符串。**重要**：自由生成SQL时，请尽可能选择更多相关字段，输出尽可能多的信息。优先选择业务相关的字段（如姓名、日期、地点、工作内容、状态等），避免只选择ID等无意义的字段。
+- sql: 仅在 template_id="free" 时使用，表示你自由生成的完整 SQL 字符串。**重要**：自由生成SQL时，请尽可能选择更多相关字段，输出尽可能多的信息。优先选择业务相关的字段（如姓名、日期、地点、工作内容、状态等），避免只选择ID等无意义的字段。**JOIN使用规范**：优先使用INNER JOIN而非LEFT JOIN；如果必须使用LEFT JOIN，需要在WHERE子句中过滤掉NULL值（如 `关联表.关键字段 IS NOT NULL`）。
 - score: 匹配度（0~1 的小数），表示你对所选模板或 SQL 的置信度；自由模式可以用 0.0
 
 意图映射提示
@@ -76,6 +76,10 @@ class SQLGenerator:
   - 在SELECT子句中尽可能选择更多相关字段，输出尽可能多的信息
   - 优先选择业务相关的字段（如姓名、日期、地点、工作内容、状态、备注等），避免只选择ID等无意义的字段
   - 如果涉及关联查询，请通过JOIN获取关联表的更多信息（如人员姓名、单元名称等）
+  - **JOIN使用规范**：
+    * **优先使用INNER JOIN**：在符合问题需求的情况下，尽量使用INNER JOIN而非LEFT JOIN。INNER JOIN只返回两表都有匹配的记录，结果更精确，性能也更好
+    * **如果必须使用LEFT JOIN**：只有在确实需要保留左表所有记录（即使右表没有匹配）的情况下才使用LEFT JOIN。使用LEFT JOIN时，**必须注意过滤掉NULL值**，在WHERE子句中添加条件如 `右表.关键字段 IS NOT NULL`，避免返回无意义的NULL记录
+    * 示例：如果查询需要关联人员信息，优先使用 `INNER JOIN 大桥局人员信息表 ON ...`，而不是 `LEFT JOIN 大桥局人员信息表 ON ...`
   - 确保SQL能够提供足够的信息来回答用户的问题
 
  - 使用模板（M1~M6）：
@@ -123,12 +127,16 @@ class SQLGenerator:
 说明：问题包含日期（2025年3月5号）和单元名称（路基L21），使用M6，必须同时提供date和unit_name参数
 
 问：跟班任务"掌子面初期支护，仰拱衬砌"的管控计划是几号？
-{{"template_id": "free", "sql": "SELECT p.计划日期, p.ID, p.管控责任人, p.状态, p.施工计划作业内容, g.重点部位_关键工序_特殊时段情况, g.日期, g.跟班人员, g.定位地址 FROM 跟班作业记录表 AS g JOIN 每日管控计划 AS p ON g.工单ID = p.ID WHERE g.重点部位_关键工序_特殊时段情况 LIKE '%掌子面初期支护%' OR g.重点部位_关键工序_特殊时段情况 LIKE '%仰拱衬砌%' ORDER BY COALESCE(p.FGC_CreateDate, p.计划日期, p.FGC_LastModifyDate) DESC", "score": 0.0}}
+{{"template_id": "free", "sql": "SELECT p.计划日期, p.ID, p.管控责任人档案编号, p.状态, p.施工计划作业内容, g.重点部位_关键工序_特殊时段情况, g.日期, g.跟班人员, g.定位地址 FROM 跟班作业记录表 AS g JOIN 每日管控计划 AS p ON g.工单ID = p.ID WHERE g.重点部位_关键工序_特殊时段情况 LIKE '%掌子面初期支护%' OR g.重点部位_关键工序_特殊时段情况 LIKE '%仰拱衬砌%' ORDER BY COALESCE(p.FGC_CreateDate, p.计划日期, p.FGC_LastModifyDate) DESC", "score": 0.0}}
 说明：通过跟班任务查找管控计划，不是查询管控计划内容的状态，应该使用自由SQL，通过跟班作业记录表关联到每日管控计划。注意：这里选择了多个相关字段以提供更多信息
 
 问：简单查一下最近的记录（你可以自由生成 SQL）
-{{"template_id": "free", "sql": "SELECT g.日期, g.重点部位_关键工序_特殊时段情况, g.跟班人员, g.定位地址, g.安全质量__管控情况__, g.状态, p.姓名 AS 跟班人员姓名 FROM 跟班作业记录表 AS g LEFT JOIN 大桥局人员信息表 AS p ON g.跟班人员档案编号 = p.档案编号 ORDER BY COALESCE(g.FGC_CreateDate, g.日期, g.FGC_LastModifyDate) DESC", "score": 0.0}}
-说明：自由生成SQL时，选择了多个相关字段（日期、工作内容、人员、地点、状态等），并通过JOIN获取了人员姓名，提供了尽可能多的信息
+{{"template_id": "free", "sql": "SELECT g.日期, g.重点部位_关键工序_特殊时段情况, g.跟班人员, g.定位地址, g.安全质量__管控情况__, g.状态, p.姓名 AS 跟班人员姓名 FROM 跟班作业记录表 AS g INNER JOIN 大桥局人员信息表 AS p ON g.跟班人员档案编号 = p.档案编号 ORDER BY COALESCE(g.FGC_CreateDate, g.日期, g.FGC_LastModifyDate) DESC", "score": 0.0}}
+说明：自由生成SQL时，选择了多个相关字段（日期、工作内容、人员、地点、状态等），并通过INNER JOIN获取了人员姓名，提供了尽可能多的信息。注意：这里使用INNER JOIN而不是LEFT JOIN，因为我们需要确保关联到有效的人员信息
+
+问：查询所有跟班记录，包括没有人员信息的记录（示例：必须使用LEFT JOIN的情况）
+{{"template_id": "free", "sql": "SELECT g.日期, g.重点部位_关键工序_特殊时段情况, g.跟班人员, g.定位地址, p.姓名 AS 跟班人员姓名 FROM 跟班作业记录表 AS g LEFT JOIN 大桥局人员信息表 AS p ON g.跟班人员档案编号 = p.档案编号 WHERE p.档案编号 IS NOT NULL ORDER BY COALESCE(g.FGC_CreateDate, g.日期, g.FGC_LastModifyDate) DESC", "score": 0.0}}
+说明：如果问题明确要求包含所有记录（即使没有关联信息），可以使用LEFT JOIN，但必须在WHERE子句中添加 `p.档案编号 IS NOT NULL` 来过滤掉NULL值，避免返回无意义的记录
 """
         prompt = f"""{system_rules}
 

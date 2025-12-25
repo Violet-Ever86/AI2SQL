@@ -27,7 +27,7 @@ class LLMClient:
             return f"{self.base_endpoint}/v1/chat/completions"
         return f"{self.base_endpoint}/v1/completions"
 
-    def complete(self, prompt: str, max_tokens: int = 800, temperature: float = 0.2) -> str:
+    def complete(self, prompt: str, max_tokens: int = 10000, temperature: float = 0.2) -> str:
         """调用LLM API完成文本生成"""
         headers = {"Content-Type": "application/json"}
         if self.api_key:

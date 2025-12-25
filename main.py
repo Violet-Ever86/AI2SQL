@@ -2,6 +2,7 @@ from config.param_normalizer import ParamNormalizer
 from sql.sql_templates import SQLTemplateManager
 from sql.sql_validator import SQLValidator
 from sql.sql_generator import SQLGenerator
+from sql.sql_field_replacer import SQLFieldReplacer
 from model.summarizer import Summarizer
 from model.llm_client import LLMClient
 from data.database import Database
@@ -43,6 +44,7 @@ class AI2SQLService:
         self.param_normalizer = ParamNormalizer()
         self.sql_generator = SQLGenerator(self.param_normalizer)
         self.sql_validator = SQLValidator()
+        self.sql_field_replacer = SQLFieldReplacer()
         self.database = Database(db_config)
         self.summarizer = Summarizer(self.llm_client)
         self.template_manager = SQLTemplateManager()
@@ -99,7 +101,7 @@ class AI2SQLService:
             prompt = self.sql_generator.build_sql_prompt(question, self.schema)
             # 增加 max_tokens 以确保输出完整（JSON响应通常需要更多token）
             # 注意：这里的 max_tokens 只是客户端请求上限，服务端如果还有更小的限制，仍需在LLM服务配置中调整
-            llm_output = self.llm_client.complete(prompt, max_tokens=3000)
+            llm_output = self.llm_client.complete(prompt, max_tokens=10000)
             
             # 检查输出是否完整
             if not llm_output or len(llm_output.strip()) < 10:
@@ -116,9 +118,6 @@ class AI2SQLService:
                 result["error"] = error_msg + "\n建议：1. 检查LLM服务的max_tokens配置\n2. 尝试简化问题\n3. 联系管理员检查模型配置"
                 log(f"\n警告：{error_msg}")
                 return result
-
-            # 输出模型原始输出（始终输出到终端）
-            log(f"\n--- 模型输出（模板选择） ---\n{llm_output}")
 
             # 尝试提取模板信息用于显示（包括模板匹配度）
             try:
@@ -186,6 +185,8 @@ class AI2SQLService:
                         result["error"] = error_msg + "\n建议：1. 检查LLM服务的max_tokens配置\n2. 尝试简化问题\n3. 联系管理员检查模型配置"
                         log(f"\n警告：{error_msg}")
                         return result
+                    
+                    # 输出模型原始输出（重试时）
                     log(f"\n--- 模型输出（模板选择，第 {gen_attempt} 次） ---\n{llm_output}")
 
                     # 重新解析模板信息（仅用于展示，容错逻辑保持不变）
@@ -219,8 +220,24 @@ class AI2SQLService:
                         result["error"] = f"模型输出解析错误: {e}"
                         return result
 
+                # 输出模型原始输出（第一次时）
+                if gen_attempt == 1:
+                    log(f"\n--- 模型输出（模板选择） ---\n{llm_output}")
+
                 # 生成SQL
                 sql = self.sql_generator.extract_sql(llm_output)
+                
+                # 在验证之前进行字段替换（因为验证不检查字段名，所以可以提前替换）
+                # 但为了保持日志中显示原始SQL，我们先保存原始SQL
+                original_sql = sql
+                sql = self.sql_field_replacer.replace_fields(sql)
+                
+                # 如果SQL被替换了，记录替换信息
+                if sql != original_sql:
+                    log(f"\n--- SQL字段替换 ---")
+                    log(f"原始SQL: {original_sql}")
+                    log(f"替换后SQL: {sql}")
+                
                 result["sql"] = sql
 
                 # 始终输出SQL到终端

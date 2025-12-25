@@ -55,7 +55,7 @@ ORDER BY COALESCE(g.FGC_CreateDate, g.日期, g.FGC_LastModifyDate) DESC""",
     # M6：按管控计划内容查询状态（内容可能在主表的施工计划作业内容或子表的分项名称中，按时间倒序）
     "M6": """SELECT 
     p.计划日期,
-    p.管控责任人,
+    p.管控责任人档案编号,
     p.施工计划作业内容,
     p.状态 AS 计划状态,
     s.分项名称,
