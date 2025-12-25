@@ -5,13 +5,13 @@ SQL_TEMPLATE_SQL = {
     # M1：按姓名查询带班记录（只要日期和工序，按时间倒序，最多50条）
     "M1": """SELECT b.带班日期, b.带班作业工序及地点
 FROM 带班作业记录表 AS b
-JOIN 大桥局人员信息表 AS p ON b.带班人员 = p.档案编号
+JOIN 大桥局人员信息表 AS p ON b.带班人员档案编号 = p.档案编号
 WHERE p.姓名 = '{person_name}'
 ORDER BY COALESCE(b.FGC_CreateDate, b.带班日期, b.FGC_LastModifyDate) DESC
 LIMIT {limit}""",
 
     # M2：按姓名查询跟班记录（只要日期和关键工序描述，按时间倒序，最多50条）
-    "M2": """SELECT g.日期, g.重点部位_关键工序_特殊时段情况
+    "M2": """SELECT g.日期, g.重点部位_关键工序_特殊时段情况 
 FROM 跟班作业记录表 AS g
 JOIN 大桥局人员信息表 AS p ON g.跟班人员档案编号 = p.档案编号
 WHERE p.姓名 = '{person_name}'
@@ -27,7 +27,7 @@ FROM (
          b.带班作业工序及地点 AS 作业内容,
          b.带班日期 AS 发生日期
   FROM 带班作业记录表 AS b
-  JOIN 大桥局人员信息表 AS p1 ON b.带班人员 = p1.档案编号
+  JOIN 大桥局人员信息表 AS p1 ON b.带班人员档案编号 = p1.档案编号
   WHERE p1.姓名 = '{person_name}'
   UNION ALL
   SELECT COALESCE(g.FGC_CreateDate, g.日期, g.FGC_LastModifyDate) AS ts,
