@@ -1,1 +1,2 @@
-1
+def mie():
+    return "mie"
