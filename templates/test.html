@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试页面 - AI转SQL查询系统</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        /* 设置页面背景为蓝色 */
+        body {
+            background: #007bff !important;
+            overflow: auto;
+        }
+        
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-nav {
+            margin-bottom: 20px;
+            padding: 10px;
+            background: #007bff;
+            border-radius: 5px;
+        }
+        .test-nav a {
+            color: #007bff;
+            text-decoration: none;
+            margin-right: 20px;
+        }
+        .test-nav a:hover {
+            text-decoration: underline;
+        }
+        .test-category {
+            margin-bottom: 30px;
+        }
+        .test-category h3 {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        .test-question {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .test-question:hover {
+            background: #f8f9fa;
+            border-color: #007bff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .test-question.testing {
+            background: #fff3cd;
+            border-color: #ffc107;
+        }
+        .test-question.success {
+            background: #d4edda;
+            border-color: #28a745;
+        }
+        .test-question.error {
+            background: #f8d7da;
+            border-color: #dc3545;
+        }
+        .question-text {
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .question-id {
+            font-size: 12px;
+            color: #666;
+            margin-right: 10px;
+        }
+        .test-status {
+            float: right;
+            font-size: 12px;
+            padding: 3px 8px;
+            border-radius: 3px;
+        }
+        .status-pending {
+            color: #666;
+        }
+        .status-testing {
+            background: #ffc107;
+            color: #000;
+        }
+        .status-success {
+            background: #28a745;
+            color: #fff;
+        }
+        .status-error {
+            background: #dc3545;
+            color: #fff;
+        }
+        .batch-controls {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        .batch-controls button {
+            margin-right: 10px;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn-primary {
+            background: #007bff;
+            color: #fff;
+        }
+        .btn-success {
+            background: #28a745;
+            color: #fff;
+        }
+        .btn-warning {
+            background: #ffc107;
+            color: #000;
+        }
+        .btn-primary:hover, .btn-success:hover, .btn-warning:hover {
+            opacity: 0.9;
+        }
+        .stats {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e9ecef;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-around;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .question-details {
+            display: none;
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border-top: 2px solid #ddd;
+        }
+        .question-details.expanded {
+            display: block;
+        }
+        .detail-section {
+            margin-bottom: 15px;
+        }
+        .detail-section h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .detail-section pre {
+            background: #fff;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            overflow-x: auto;
+            font-size: 12px;
+            margin: 0;
+        }
+        .detail-section .summary {
+            background: #fff;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .detail-section .error-msg {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #f5c6cb;
+        }
+        .detail-row {
+            display: flex;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        .detail-label {
+            font-weight: bold;
+            min-width: 100px;
+            color: #666;
+        }
+        .detail-value {
+            color: #333;
+        }
+        .toggle-details {
+            float: right;
+            font-size: 12px;
+            color: #007bff;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        .toggle-details:hover {
+            text-decoration: underline;
+        }
+        .btn-view-logs {
+            background: #17a2b8;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .btn-view-logs:hover {
+            background: #138496;
+        }
+        .log-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .log-modal-content {
+            background: #fff;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        .log-modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .log-modal-header h3 {
+            margin: 0;
+            color: #333;
+        }
+        .log-modal-close {
+            font-size: 28px;
+            cursor: pointer;
+            color: #999;
+            line-height: 1;
+        }
+        .log-modal-close:hover {
+            color: #333;
+        }
+        .log-modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .log-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .log-info-item {
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        .log-info-item strong {
+            color: #666;
+            margin-right: 8px;
+        }
+        .log-content h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        .log-text {
+            background: #282c34;
+            color: #abb2bf;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+            line-height: 1.5;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .log-modal-footer {
+            padding: 15px 20px;
+            border-top: 1px solid #ddd;
+            text-align: right;
+        }
+        .log-modal-footer button {
+            background: #007bff;
+            color: #fff;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .log-modal-footer button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-nav">
+            <a href="/">返回主页</a>
+            <span>测试页面</span>
+        </div>
+
+        <div class="batch-controls">
+            <button class="btn-primary" onclick="testAll()">测试全部</button>
+            <button class="btn-success" onclick="testCategory('新增')">测试新增关联</button>
+            <button class="btn-warning" onclick="testCategory('复杂')">测试复杂查询</button>
+            <button onclick="clearResults()">清除结果</button>
+        </div>
+
+        <div class="stats" id="stats">
+            <div class="stat-item">
+                <div class="stat-value" id="total-count">0</div>
+                <div class="stat-label">总问题数</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="tested-count">0</div>
+                <div class="stat-label">已测试</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="success-count">0</div>
+                <div class="stat-label">成功</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="error-count">0</div>
+                <div class="stat-label">失败</div>
+            </div>
+        </div>
+
+        <!-- 测试问题列表 -->
+        <div id="test-questions"></div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/test.js') }}"></script>
+</body>
+</html>
+

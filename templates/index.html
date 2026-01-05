@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI转SQL查询系统</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        <!-- 左侧边栏 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <h1 class="app-title">安全穿透智能体</h1>
+            </div>
+            
+            <button class="new-chat-btn" id="newChatBtn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                开启新对话
+            </button>
+            
+            <div class="suggestions">
+                <p class="suggestion-label">提示问题：</p>
+                <div class="suggestion-item" data-question="罗康康的跟班和带班记录">询问罗康康的跟班和带班记录？</div>
+                <div class="suggestion-item" data-question="查询所有员工的考勤信息">查询所有员工的考勤信息？</div>
+                <div class="suggestion-item" data-question="统计本月的工作时长">统计本月的工作时长？</div>
+            </div>
+        </aside>
+
+        <!-- 右侧主内容区 -->
+        <main class="main-content">
+            <div class="content-area" id="contentArea">
+                <!-- 欢迎消息 -->
+                <div class="welcome-message" id="welcomeMessage">
+                    <h2>欢迎使用AI转SQL查询系统</h2>
+                    <p>输入自然语言问题，系统将自动生成SQL并查询结果</p>
+                </div>
+
+                <!-- 查询结果区域 -->
+                <div id="results" class="results" style="display: none;">
+                    <!-- 总结部分（优先显示） -->
+                    <div class="result-card summary-card">
+                        <div class="card-header">
+                            <h3>查询总结</h3>
+                        </div>
+                        <div class="card-content">
+                            <div id="summary-text"></div>
+                        </div>
+                    </div>
+
+                    <!-- SQL部分 -->
+                    <div class="result-card">
+                        <div class="card-header collapsible" onclick="toggleSection('sql')">
+                            <h3>SQL查询语句</h3>
+                            <span class="toggle-icon" id="sql-toggle">▼</span>
+                        </div>
+                        <div class="card-content" id="sql-content" style="display: none;">
+                            <pre id="sql-text"></pre>
+                        </div>
+                    </div>
+
+                    <!-- 查询结果部分 -->
+                    <div class="result-card">
+                        <div class="card-header collapsible" onclick="toggleSection('data')">
+                            <h3>查询结果 <span id="row-count"></span></h3>
+                            <span class="toggle-icon" id="data-toggle">▼</span>
+                        </div>
+                        <div class="card-content" id="data-content" style="display: none;">
+                            <div id="data-table"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 加载状态 -->
+                <div id="loading" class="loading" style="display: none;">
+                    <div class="spinner"></div>
+                    <span>正在处理中...</span>
+                </div>
+
+                <!-- 错误提示 -->
+                <div id="error" class="error-message" style="display: none;"></div>
+            </div>
+
+            <!-- 底部输入框 -->
+            <div class="input-container">
+                <div class="input-wrapper">
+                    <button class="mic-btn" id="micBtn" title="语音输入">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 1C10.34 1 9 2.34 9 4V12C9 13.66 10.34 15 12 15C13.66 15 15 13.66 15 12V4C15 2.34 13.66 1 12 1Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M19 10V12C19 16.42 15.42 20 11 20M11 20V23M11 20H8M11 20H14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                    <input 
+                        type="text" 
+                        id="questionInput" 
+                        placeholder="和AI转SQL查询系统聊天..."
+                        autocomplete="off"
+                    >
+                    <button id="sendBtn" class="send-btn" title="发送">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
