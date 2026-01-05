@@ -125,6 +125,12 @@ def get_query_logs(query_id):
         }), 500
 
 
+@app.route('/api/receive_roles', methods=['POST'])
+def get_login_roles(quest: dict):
+
+    pass
+
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
 
