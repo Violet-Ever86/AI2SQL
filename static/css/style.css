@@ -31,15 +31,79 @@ body {
     flex-direction: column;
     padding: 24px 20px;
     overflow-y: auto;
+    transition: width 0.3s ease;
+    position: relative;
+}
+
+/* 侧边栏折叠状态 - 完全隐藏 */
+.sidebar.collapsed {
+    width: 0;
+    padding: 0;
+    overflow: hidden;
+    border-right: none;
+    min-width: 0;
+}
+
+.sidebar.collapsed * {
+    display: none;
+}
+
+/* 展开侧边栏按钮 */
+.expand-sidebar-btn {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    width: 40px;
+    height: 40px;
+    background: #ffffff;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+    transition: all 0.3s ease;
+    color: #6b7280;
+}
+
+.expand-sidebar-btn:hover {
+    background: #f9fafb;
+    color: #4F46E5;
+    border-color: #4F46E5;
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .sidebar-header {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 12px;
     margin-bottom: 32px;
     padding-bottom: 24px;
     border-bottom: 1px solid #e5e5e5;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.logo {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #4F46E5;
+    transition: all 0.3s ease;
+}
+
+.app-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f2937;
+    white-space: nowrap;
+    overflow: hidden;
+    transition: opacity 0.3s ease;
+    flex: 1;
 }
 
 .logo-circle {
@@ -74,6 +138,46 @@ body {
     line-height: 1.4;
 }
 
+.sidebar-toggle {
+    position: absolute;
+    top: 0;
+    right: -12px;
+    width: 24px;
+    height: 24px;
+    background: #ffffff;
+    border: 1px solid #e5e5e5;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+    transition: all 0.3s ease;
+    color: #6b7280;
+    margin-left: auto;
+}
+
+.sidebar-toggle:hover {
+    background: #f9fafb;
+    color: #4F46E5;
+    border-color: #4F46E5;
+    transform: scale(1.1);
+}
+
+.sidebar.collapsed .sidebar-toggle {
+    position: absolute;
+    top: 0;
+    right: -12px;
+    transform: rotate(180deg);
+}
+
+.sidebar.collapsed .sidebar-header .sidebar-toggle {
+    position: absolute;
+    top: 0;
+    right: -12px;
+}
+
 .new-chat-btn {
     width: 100%;
     padding: 12px 16px;
@@ -88,9 +192,14 @@ body {
     align-items: center;
     justify-content: center;
     gap: 8px;
-    transition: all 0.2s;
+    transition: all 0.3s ease;
     margin-bottom: 32px;
     box-shadow: 0 2px 8px rgba(79, 70, 229, 0.2);
+}
+
+.btn-text {
+    white-space: nowrap;
+    transition: opacity 0.3s ease;
 }
 
 .new-chat-btn:hover {
@@ -124,6 +233,15 @@ body {
     transition: all 0.2s;
     border: 1px solid #e5e7eb;
     line-height: 1.5;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.suggestion-text {
+    white-space: nowrap;
+    overflow: hidden;
+    transition: opacity 0.3s ease;
 }
 
 .suggestion-item:hover {
@@ -140,6 +258,7 @@ body {
     background: #ffffff;
     overflow: hidden;
     position: relative;
+    transition: all 0.3s ease;
 }
 
 .content-header {
@@ -253,18 +372,93 @@ body {
     padding: 20px;
 }
 
-#sql-text {
-    background: #f9fafb;
-    padding: 16px;
-    border-radius: 8px;
-    overflow-x: auto;
-    font-family: 'Courier New', 'Consolas', monospace;
+#keyinfo-text {
     font-size: 16px;
-    line-height: 1.6;
-    color: #1f2937;
+    line-height: 1.5;
+    color: #374151;
     white-space: pre-wrap;
-    word-wrap: break-word;
+}
+
+#keyinfo-text h2,
+#keyinfo-text h3 {
+    margin-top: 12px;
+    margin-bottom: 6px;
+    color: #1f2937;
+    font-weight: 600;
+}
+
+#keyinfo-text h2 {
+    font-size: 18px;
+}
+
+#keyinfo-text h3 {
+    font-size: 17px;
+}
+
+#keyinfo-text p {
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+
+#keyinfo-text ul,
+#keyinfo-text ol {
+    margin: 8px 0;
+    padding-left: 24px;
+}
+
+#keyinfo-text li {
+    margin: 4px 0;
+    line-height: 1.5;
+}
+
+#keyinfo-text table.summary-table {
+    margin: 8px 0;
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#keyinfo-text table.summary-table th,
+#keyinfo-text table.summary-table td {
+    padding: 8px 12px;
     border: 1px solid #e5e7eb;
+    text-align: left;
+    font-size: 16px;
+}
+
+#keyinfo-text table.summary-table th {
+    background: #f9fafb;
+    font-weight: 600;
+}
+
+/* 图表容器样式 */
+.chart-container {
+    margin: 20px 0;
+    padding: 20px;
+    background: #f9fafb;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    position: relative;
+    height: 400px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.chart-container canvas {
+    max-height: 380px;
+    max-width: 100%;
+}
+
+.chart-placeholder {
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.chart-error {
+    color: #dc2626;
+    font-size: 14px;
+    padding: 20px;
+    text-align: center;
 }
 
 #data-table {
@@ -352,6 +546,33 @@ table tr:hover {
 #summary-text table.summary-table th {
     background: #f9fafb;
     font-weight: 600;
+}
+
+/* 查询结果表格样式（在总结栏中） */
+#summary-text table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 12px;
+    margin-bottom: 12px;
+}
+
+#summary-text table th,
+#summary-text table td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+#summary-text table th {
+    background: #f9fafb;
+    font-weight: 600;
+    color: #1f2937;
+    position: sticky;
+    top: 0;
+}
+
+#summary-text table tr:hover {
+    background: #f9fafb;
 }
 
 #row-count {
@@ -456,6 +677,46 @@ table tr:hover {
     color: #374151;
 }
 
+.mic-btn.recording {
+    background: #fee2e2;
+    color: #dc2626;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+.mic-btn.recording:hover {
+    background: #fecaca;
+    color: #b91c1c;
+}
+
+.mic-status {
+    margin-left: 8px;
+    font-size: 12px;
+    color: #6b7280;
+    min-width: 110px;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.mic-status.recording::after {
+    content: '...';
+    display: inline-block;
+    margin-left: 4px;
+    width: 0ch;
+    overflow: hidden;
+    animation: recording-dots 1s steps(3, end) infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.8;
+        transform: scale(1.05);
+    }
+}
+
 .send-btn {
     background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
     color: white;
@@ -526,6 +787,23 @@ table tr:hover {
         max-height: 200px;
         border-right: none;
         border-bottom: 1px solid #e5e5e5;
+    }
+    
+    .sidebar.collapsed {
+        width: 0;
+        padding: 0;
+    }
+    
+    .expand-sidebar-btn {
+        top: 12px;
+        left: 12px;
+        width: 36px;
+        height: 36px;
+    }
+    
+    .sidebar-toggle {
+        top: 16px;
+        right: 16px;
     }
     
     .content-area {

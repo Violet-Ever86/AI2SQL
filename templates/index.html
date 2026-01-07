@@ -5,11 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI转SQL查询系统</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
     <div class="app-container">
         <!-- 左侧边栏 -->
-        <aside class="sidebar">
+        <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="logo">
                     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -19,25 +20,43 @@
                     </svg>
                 </div>
                 <h1 class="app-title">安全穿透智能体</h1>
+                <!-- 折叠按钮 -->
+                <button class="sidebar-toggle" id="sidebarToggle" title="折叠侧边栏">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
             </div>
             
             <button class="new-chat-btn" id="newChatBtn">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                 </svg>
-                开启新对话
+                <span class="btn-text">开启新对话</span>
             </button>
             
             <div class="suggestions">
                 <p class="suggestion-label">提示问题：</p>
-                <div class="suggestion-item" data-question="罗康康的跟班和带班记录">询问罗康康的跟班和带班记录？</div>
-                <div class="suggestion-item" data-question="查询所有员工的考勤信息">查询所有员工的考勤信息？</div>
-                <div class="suggestion-item" data-question="统计本月的工作时长">统计本月的工作时长？</div>
+                <div class="suggestion-item" data-question="罗康康的跟班和带班记录">
+                    <span class="suggestion-text">询问罗康康的跟班和带班记录？</span>
+                </div>
+                <div class="suggestion-item" data-question="查询所有员工的考勤信息">
+                    <span class="suggestion-text">查询所有员工的考勤信息？</span>
+                </div>
+                <div class="suggestion-item" data-question="统计本月的工作时长">
+                    <span class="suggestion-text">统计本月的工作时长？</span>
+                </div>
             </div>
         </aside>
 
         <!-- 右侧主内容区 -->
         <main class="main-content">
+            <!-- 展开侧边栏按钮（仅在折叠时显示） -->
+            <button class="expand-sidebar-btn" id="expandSidebarBtn" title="展开侧边栏" style="display: none;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
             <div class="content-area" id="contentArea">
                 <!-- 欢迎消息 -->
                 <div class="welcome-message" id="welcomeMessage">
@@ -57,14 +76,14 @@
                         </div>
                     </div>
 
-                    <!-- SQL部分 -->
+                    <!-- 关键信息部分 -->
                     <div class="result-card">
-                        <div class="card-header collapsible" onclick="toggleSection('sql')">
-                            <h3>SQL查询语句</h3>
-                            <span class="toggle-icon" id="sql-toggle">▼</span>
+                        <div class="card-header collapsible" onclick="toggleSection('keyinfo')">
+                            <h3>关键信息</h3>
+                            <span class="toggle-icon" id="keyinfo-toggle">▼</span>
                         </div>
-                        <div class="card-content" id="sql-content" style="display: none;">
-                            <pre id="sql-text"></pre>
+                        <div class="card-content" id="keyinfo-content" style="display: none;">
+                            <div id="keyinfo-text"></div>
                         </div>
                     </div>
 
@@ -99,6 +118,7 @@
                             <path d="M19 10V12C19 16.42 15.42 20 11 20M11 20V23M11 20H8M11 20H14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                     </button>
+                    <span id="micStatus" class="mic-status" aria-live="polite"></span>
                     <input 
                         type="text" 
                         id="questionInput" 

@@ -9,12 +9,21 @@ parser = argparse.ArgumentParser(description='NL -> SQL -> MySQL -> Summary demo
 # Schema文件路径
 parser.add_argument('--schema-path', default='./data/schema_prompt.txt', help='Schema文件路径')
 
+
+# # 数据库配置
+# parser.add_argument('--db-host', default=os.getenv('DB_HOST', '10.84.11.214'), help='数据库主机地址')
+# parser.add_argument('--db-port', type=int, default=int(os.getenv('DB_PORT', '3306')), help='数据库端口')
+# parser.add_argument('--db-user', default=os.getenv('DB_USER', 'Lmodel'), help='数据库用户名')
+# parser.add_argument('--db-password', default=os.getenv('DB_PASSWORD', 'dnDNn32_mdn133*'), help='数据库密码')
+# parser.add_argument('--db-name', default=os.getenv('DB_NAME', 'aqcts'), help='数据库名称')
+
 # 数据库配置
 parser.add_argument('--db-host', default=os.getenv('DB_HOST', '127.0.0.1'), help='数据库主机地址')
 parser.add_argument('--db-port', type=int, default=int(os.getenv('DB_PORT', '3306')), help='数据库端口')
 parser.add_argument('--db-user', default=os.getenv('DB_USER', 'root'), help='数据库用户名')
-parser.add_argument('--db-password', default=os.getenv('DB_PASSWORD', 'violet'), help='数据库密码')
-parser.add_argument('--db-name', default=os.getenv('DB_NAME', 'test_db'), help='数据库名称')
+parser.add_argument('--db-password', default=os.getenv('DB_PASSWORD', '123456'), help='数据库密码')
+parser.add_argument('--db-name', default=os.getenv('DB_NAME', 'demo'), help='数据库名称')
+
 
 # LLM配置
 parser.add_argument('--llm-endpoint', default=os.getenv('LLM_ENDPOINT', 'https://ollama.com'), help='LLM API端点')

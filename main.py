@@ -82,7 +82,7 @@ class AI2SQLService:
             "question": question,
             "sql": "",
             "rows": [],
-            "summary": "",
+            "summary": {"summaryContent": "", "keyInfo": "", "recordOverview": ""},
             "template_info": None,
             "error": None,
             "success": False,
@@ -275,13 +275,16 @@ class AI2SQLService:
             log(f"\n--- 查询结果（前5行，实际{len(rows)}行） ---")
             log(json.dumps(rows[:5], ensure_ascii=False, indent=2))
 
-            # 生成总结
-            summary = self.summarizer.summarize(question, sql, rows)
-            result["summary"] = summary
+            # 生成总结（返回结构化字典）
+            summary_dict = self.summarizer.summarize(question, sql, rows)
+            result["summary"] = summary_dict
             result["success"] = True
 
             # 始终输出总结到终端
-            log(f"\n--- 总结 ---\n{summary}")
+            log(f"\n--- 总结 ---")
+            log(f"总结内容：{summary_dict.get('summaryContent', '')}")
+            log(f"关键信息：{summary_dict.get('keyInfo', '')}")
+            log(f"记录概览：{summary_dict.get('recordOverview', '')}")
 
         except Exception as e:
             error_msg = f"查询处理失败: {str(e)}"
