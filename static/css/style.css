@@ -6,7 +6,7 @@
 
 :root {
     /* 查询总结字体大小变量 */
-    --summary-base-font: 16px;  /* 基础字体大小 A */
+    --summary-base-font: 24px;  /* 基础字体大小 A */
 }
 
 body {
@@ -373,7 +373,7 @@ body {
 }
 
 #keyinfo-text {
-    font-size: 16px;
+    font-size:24px;
     line-height: 1.5;
     color: #374151;
     white-space: pre-wrap;
