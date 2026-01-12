@@ -18,8 +18,9 @@ class AI2SQLService:
     def __init__(self):
         """初始化服务，加载配置和组件"""
         # 加载schema文本
-        if os.path.exists(params.schema_path):
-            with open(params.schema_path, "r", encoding="utf-8") as f:
+        schema_path = params.work_space / "data" / "schema_prompt.txt"
+        if schema_path.exists():
+            with open(schema_path, "r", encoding="utf-8") as f:
                 self.schema = f.read().strip()
         else:
             self.schema = ''
