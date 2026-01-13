@@ -32,8 +32,9 @@ function setMicStatus(message, type = 'info') {
     }
 }
 
-// 保存查询数据，用于延迟渲染
+// 保存查询数据，用于延迟渲染和异步获取总结
 let cachedQueryData = null;
+let summaryPollTimer = null;
 
 // 更新按钮显示状态
 function updateButtonVisibility() {
@@ -239,11 +240,23 @@ function hideWelcome() {
 }
 
 // 渲染关键信息（延迟渲染）
-function renderKeyInfo() {
+function renderKeyInfo(forceRerender = false) {
     if (!cachedQueryData) return;
     
     const keyInfoText = document.getElementById('keyinfo-text');
-    if (keyInfoText.dataset.rendered === 'true') return; // 已渲染过，跳过
+    if (!keyInfoText) return;
+    
+    // 如果已渲染过且不是强制重新渲染，检查数据是否有更新
+    if (keyInfoText.dataset.rendered === 'true' && !forceRerender) {
+        // 检查数据是否已更新（通过比较当前数据和已渲染的数据）
+        const currentKeyInfo = cachedQueryData.summary?.keyInfo || cachedQueryData.summary?.key_info || '';
+        const renderedKeyInfo = keyInfoText.dataset.lastRenderedKeyInfo || '';
+        // 如果数据相同，跳过；如果数据不同，强制重新渲染
+        if (currentKeyInfo === renderedKeyInfo) {
+            return;
+        }
+        forceRerender = true;
+    }
     
     const summaryData = {};
     if (typeof cachedQueryData.summary === 'object' && cachedQueryData.summary !== null) {
@@ -252,8 +265,10 @@ function renderKeyInfo() {
     
     if (summaryData.keyInfo) {
         keyInfoText.innerHTML = formatSummary(summaryData.keyInfo);
+        keyInfoText.dataset.lastRenderedKeyInfo = summaryData.keyInfo;
     } else {
         keyInfoText.innerHTML = '<p style="color: #999;">暂无关键信息</p>';
+        keyInfoText.dataset.lastRenderedKeyInfo = '';
     }
     
     keyInfoText.dataset.rendered = 'true';
@@ -293,6 +308,12 @@ function toggleSection(section) {
             renderKeyInfo();
         } else if (section === 'data') {
             renderDataTable();
+        } else if (section === 'summary') {
+            // 展开总结区域时，如果还没有内容，显示占位
+            const summaryText = document.getElementById('summary-text');
+            if (!summaryText.innerHTML) {
+                summaryText.innerHTML = '<p style="color: #999;">正在生成总结...</p>';
+            }
         }
         
         content.style.display = 'block';
@@ -317,6 +338,11 @@ async function handleQuery() {
     hideResults();
     hideWelcome();
     showLoading();
+    // 停止上一次的总结轮询
+    if (summaryPollTimer) {
+        clearTimeout(summaryPollTimer);
+        summaryPollTimer = null;
+    }
     sendBtn.disabled = true;
     
     // 滚动到顶部
@@ -385,32 +411,40 @@ function displayResults(data) {
     
     // 显示总结内容（只显示summaryContent部分）
     const summaryText = document.getElementById('summary-text');
-    let summaryHTML = '';
-    
-    if (summaryData.summaryContent) {
-        summaryHTML = formatSummary(summaryData.summaryContent);
-    } else {
-        summaryHTML = '<p style="color: #999;">暂无总结内容</p>';
+    const summaryContent = summaryData.summaryContent;
+    const summaryStatus = data.summary_status || 'pending';
+
+    // 初始状态：折叠总结卡片，显示占位提示
+    const summaryContentDiv = document.getElementById('summary-content');
+    const summaryToggle = document.getElementById('summary-toggle');
+    if (summaryContentDiv && summaryToggle) {
+        summaryContentDiv.style.display = 'none';
+        summaryToggle.textContent = '▼';
     }
-    
-    // 在总结内容后面添加统计图（charts）
-    if (charts && charts.length > 0) {
-        // 先设置HTML内容
-        summaryText.innerHTML = summaryHTML;
-        
-        // 然后在总结内容后面添加图表
-        charts.forEach((chartConfig, index) => {
-            const chartContainer = createChartContainer(chartConfig, index);
-            summaryText.appendChild(chartContainer);
-        });
+
+    if (summaryStatus === 'done' && summaryContent) {
+        // 如果后端已经生成好了总结（例如刷新页面后的重放），直接渲染并展开
+        renderSummaryArea(summaryData, charts);
+        if (summaryContentDiv && summaryToggle) {
+            summaryContentDiv.style.display = 'block';
+            summaryToggle.textContent = '▲';
+        }
     } else {
-        summaryText.innerHTML = summaryHTML;
+        // 总结尚未就绪，显示占位文本，并启动轮询
+        summaryText.innerHTML = '<p style="color: #999;">正在生成总结...</p>';
+        if (data.query_id) {
+            startSummaryPolling(data.query_id);
+        }
     }
     
     // 关键信息和查询结果延迟渲染，只更新标题和计数
     // 关键信息：只更新标题，内容在点击时渲染
     const keyInfoText = document.getElementById('keyinfo-text');
-    keyInfoText.innerHTML = ''; // 清空，延迟渲染
+    if (keyInfoText) {
+        keyInfoText.innerHTML = ''; // 清空，延迟渲染
+        keyInfoText.dataset.rendered = 'false'; // 重置渲染标志
+        keyInfoText.dataset.lastRenderedKeyInfo = ''; // 清空上次渲染的数据
+    }
     
     // 查询结果：只更新计数，表格在点击时渲染
     const rowCount = document.getElementById('row-count');
@@ -426,8 +460,17 @@ function displayResults(data) {
             rowCount.textContent = `(${totalRows} 条)`;
         }
         
-        // 清空表格，延迟渲染
-        dataTable.innerHTML = '';
+        // 直接渲染表格，并展开“查询结果”区域（先给用户看数据）
+        const displayRows = data.rows.slice(0, maxDisplayRows);
+        dataTable.innerHTML = createTable(displayRows);
+        dataTable.dataset.rendered = 'true';
+
+        const dataContent = document.getElementById('data-content');
+        const dataToggle = document.getElementById('data-toggle');
+        if (dataContent && dataToggle) {
+            dataContent.style.display = 'block';
+            dataToggle.textContent = '▲';
+        }
     } else {
         rowCount.textContent = '(0 条)';
         dataTable.innerHTML = '';
@@ -466,6 +509,106 @@ function createTable(rows) {
     
     html += '</tbody></table>';
     return html;
+}
+
+// 渲染总结区域（文本 + 图表）
+function renderSummaryArea(summaryData, charts) {
+    const summaryText = document.getElementById('summary-text');
+    if (!summaryText) return;
+
+    let summaryHTML = '';
+    if (summaryData.summaryContent) {
+        summaryHTML = formatSummary(summaryData.summaryContent);
+    } else {
+        summaryHTML = '<p style="color: #999;">暂无总结内容</p>';
+    }
+
+    if (charts && charts.length > 0) {
+        // 先设置HTML内容
+        summaryText.innerHTML = summaryHTML;
+
+        // 然后在总结内容后面添加图表
+        charts.forEach((chartConfig, index) => {
+            const chartContainer = createChartContainer(chartConfig, index);
+            summaryText.appendChild(chartContainer);
+        });
+    } else {
+        summaryText.innerHTML = summaryHTML;
+    }
+}
+
+// 启动轮询后端总结接口
+function startSummaryPolling(queryId) {
+    const pollInterval = 2000; // 2 秒轮询一次
+
+    async function poll() {
+        try {
+            const resp = await fetch(`/api/query-summary/${queryId}`);
+            if (!resp.ok) {
+                throw new Error('获取总结失败');
+            }
+            const data = await resp.json();
+
+            if (data.status === 'done') {
+                // 更新缓存数据中的summary
+                if (!cachedQueryData) {
+                    cachedQueryData = {};
+                }
+                cachedQueryData.summary = data.summary || {};
+
+                const charts = (data.summary && data.summary.charts) ? data.summary.charts : [];
+                const summaryData = {
+                    summaryContent: data.summary.summaryContent || data.summary.summary_content || '',
+                    keyInfo: data.summary.keyInfo || data.summary.key_info || '',
+                    recordOverview: data.summary.recordOverview || data.summary.record_overview || ''
+                };
+
+                // 渲染总结并自动展开
+                renderSummaryArea(summaryData, charts);
+                const summaryContentDiv = document.getElementById('summary-content');
+                const summaryToggle = document.getElementById('summary-toggle');
+                if (summaryContentDiv && summaryToggle) {
+                    summaryContentDiv.style.display = 'block';
+                    summaryToggle.textContent = '▲';
+                }
+
+                // 同时收起“查询结果”区域
+                const dataContent = document.getElementById('data-content');
+                const dataToggle = document.getElementById('data-toggle');
+                if (dataContent && dataToggle) {
+                    dataContent.style.display = 'none';
+                    dataToggle.textContent = '▼';
+                }
+
+                // 如果关键信息区域已经展开，立即重新渲染（因为数据已更新）
+                const keyInfoContent = document.getElementById('keyinfo-content');
+                if (keyInfoContent && keyInfoContent.style.display !== 'none') {
+                    renderKeyInfo(true); // 强制重新渲染
+                }
+
+                summaryPollTimer = null;
+                return;
+            }
+
+            if (data.status === 'error') {
+                const summaryText = document.getElementById('summary-text');
+                if (summaryText) {
+                    summaryText.innerHTML = `<p style="color: #f97316;">总结生成失败：${data.error || '未知错误'}</p>`;
+                }
+                summaryPollTimer = null;
+                return;
+            }
+
+            // 仍在 pending 状态，继续轮询
+            summaryPollTimer = setTimeout(poll, pollInterval);
+        } catch (e) {
+            console.error('轮询总结接口失败', e);
+            summaryPollTimer = null;
+        }
+    }
+
+    // 启动第一次轮询
+    summaryPollTimer = setTimeout(poll, pollInterval);
 }
 
 // 解析图表指令
