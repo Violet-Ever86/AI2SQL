@@ -2,6 +2,7 @@ import pymysql
 from datetime import date, datetime, time, timedelta
 from typing import Dict, List
 import decimal
+from config.config import logger
 
 
 class Database:
@@ -56,16 +57,16 @@ class Database:
         except pymysql.err.OperationalError as e:
             error_msg = str(e)
             if "Can't connect" in error_msg or "拒绝" in error_msg:
-                print(f"\n错误：无法连接到MySQL数据库")
-                print(f"请检查：")
-                print(f"  1. MySQL服务是否正在运行")
-                print(f"  2. 连接配置是否正确（host={self.db_conf['host']}, port={self.db_conf['port']}, db={self.db_conf['db']}）")
-                print(f"  3. 用户名和密码是否正确")
-                print(f"\n生成的SQL（已验证正确）：\n{sql}")
+                logger.error(f"错误：无法连接到MySQL数据库")
+                logger.error(f"请检查：")
+                logger.error(f"  1. MySQL服务是否正在运行")
+                logger.error(f"  2. 连接配置是否正确（host={self.db_conf['host']}, port={self.db_conf['port']}, db={self.db_conf['db']}）")
+                logger.error(f"  3. 用户名和密码是否正确")
+                logger.error(f"生成的SQL（已验证正确）：\n{sql}")
             raise
         except Exception as e:
-            print(f"\n数据库查询错误：{e}")
-            print(f"\n生成的SQL：\n{sql}")
+            logger.error(f"数据库查询错误：{e}")
+            logger.error(f"生成的SQL：\n{sql}")
             raise
 
 

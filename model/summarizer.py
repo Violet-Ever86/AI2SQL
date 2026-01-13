@@ -2,6 +2,7 @@ import json
 from typing import Dict, List
 
 from model.llm_client import LLMClient
+from config.config import logger
 
 
 class Summarizer:
@@ -94,7 +95,7 @@ class Summarizer:
                     - 所有内容都用中文回答"""
 
         response = self.llm_client.complete(prompt, max_tokens=10000, temperature=0.2)
-        print("[LLM总结] LLM调用完成")
+        logger.debug("[LLM总结] LLM调用完成")
         # 尝试解析JSON响应
         try:
             # 移除可能的markdown代码块标记
@@ -121,13 +122,13 @@ class Summarizer:
                 "recordOverview": summary_dict.get("recordOverview", ""),
                 "charts": summary_dict.get("charts", [])  # 图表数组
             }
-            print("[LLM总结] 总结生成完成")
+            logger.debug("[LLM总结] 总结生成完成")
 
             return result
 
         except (json.JSONDecodeError, ValueError) as e:
             # 如果解析失败，返回默认结构，将原始响应作为总结内容
-            print("[LLM总结] 总结生成完成（JSON解析失败，使用原始响应）")
+            logger.warning("[LLM总结] 总结生成完成（JSON解析失败，使用原始响应）")
             return {
                 "summaryContent": response,
                 "keyInfo": "",

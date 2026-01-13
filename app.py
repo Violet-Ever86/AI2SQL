@@ -6,6 +6,7 @@ from datetime import datetime
 import uuid
 import os
 import tempfile
+from config.config import logger
 
 app = Flask(__name__)
 CORS(app)
@@ -43,13 +44,13 @@ try:
         from voice.stt_service import get_stt_service
         speech_service = get_stt_service(model_dir, vad_model, device=device)
         if speech_service.is_available():
-            print(f"语音识别服务已初始化，模型: {model_dir}, VAD: {vad_model}, 设备: {device}")
+            logger.info(f"语音识别服务已初始化，模型: {model_dir}, VAD: {vad_model}, 设备: {device}")
         else:
-            print("语音识别服务初始化失败，请检查模型路径或依赖")
+            logger.warning("语音识别服务初始化失败，请检查模型路径或依赖")
     else:
-        print("未配置 FunASR 模型路径，将使用浏览器原生语音识别")
+        logger.info("未配置 FunASR 模型路径，将使用浏览器原生语音识别")
 except Exception as e:
-    print(f"语音识别服务初始化失败: {e}")
+    logger.error(f"语音识别服务初始化失败: {e}")
     speech_service = None
 
 
@@ -108,7 +109,7 @@ def query():
         
         # 调用服务查询（收集日志，带整体重试机制）
         # 当本次查询出现错误（包括SQL未通过校验等）时，会自动重新调用大模型，最多尝试3次
-        result = service.query_with_retries(question, verbose=False, collect_logs=True)
+        result = service.query_with_retries(question, collect_logs=True)
         
         # 存储日志
         query_logs[query_id] = {
@@ -229,7 +230,7 @@ def speech_recognize():
                 )
                 use_path = converted_path
             except Exception as conv_err:
-                print(f"音频转码失败，将直接使用原文件: {conv_err}")
+                logger.warning(f"音频转码失败，将直接使用原文件: {conv_err}")
                 use_path = tmp_path
         else:
             use_path = tmp_path

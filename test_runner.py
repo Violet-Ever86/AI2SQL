@@ -11,6 +11,7 @@ import json
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from main import AI2SQLService
+from config.config import logger
 
 # 测试问题列表（重点测试新增关联关系）
 TEST_QUESTIONS = [
@@ -80,20 +81,20 @@ TEST_QUESTIONS = [
 
 def run_tests():
     """运行所有测试问题"""
-    print("=" * 80)
-    print("AI转SQL系统测试开始")
-    print("=" * 80)
+    logger.info("=" * 80)
+    logger.info("AI转SQL系统测试开始")
+    logger.info("=" * 80)
     
     service = AI2SQLService()
     results = []
     
     for test_id, question in TEST_QUESTIONS:
-        print(f"\n{'='*80}")
-        print(f"测试 [{test_id}]: {question}")
-        print(f"{'='*80}")
+        logger.info(f"\n{'='*80}")
+        logger.info(f"测试 [{test_id}]: {question}")
+        logger.info(f"{'='*80}")
         
         try:
-            result = service.query(question, verbose=False)
+            result = service.query(question)
             results.append({
                 "test_id": test_id,
                 "question": question,
@@ -104,12 +105,12 @@ def run_tests():
             })
             
             if result["success"]:
-                print(f"✅ 测试 [{test_id}] 成功 - 返回 {result['row_count']} 条记录")
+                logger.info(f"✅ 测试 [{test_id}] 成功 - 返回 {result['row_count']} 条记录")
             else:
-                print(f"❌ 测试 [{test_id}] 失败 - {result.get('error', '未知错误')}")
+                logger.error(f"❌ 测试 [{test_id}] 失败 - {result.get('error', '未知错误')}")
                 
         except Exception as e:
-            print(f"❌ 测试 [{test_id}] 异常 - {str(e)}")
+            logger.error(f"❌ 测试 [{test_id}] 异常 - {str(e)}")
             results.append({
                 "test_id": test_id,
                 "question": question,
@@ -118,25 +119,25 @@ def run_tests():
             })
     
     # 生成测试报告
-    print("\n" + "=" * 80)
-    print("测试报告")
-    print("=" * 80)
+    logger.info("\n" + "=" * 80)
+    logger.info("测试报告")
+    logger.info("=" * 80)
     
     total = len(results)
     success = sum(1 for r in results if r.get("success", False))
     failed = total - success
     
-    print(f"总测试数: {total}")
-    print(f"成功: {success} ({success/total*100:.1f}%)")
-    print(f"失败: {failed} ({failed/total*100:.1f}%)")
+    logger.info(f"总测试数: {total}")
+    logger.info(f"成功: {success} ({success/total*100:.1f}%)")
+    logger.info(f"失败: {failed} ({failed/total*100:.1f}%)")
     
     if failed > 0:
-        print("\n失败的测试:")
+        logger.info("\n失败的测试:")
         for r in results:
             if not r.get("success", False):
-                print(f"  - [{r['test_id']}] {r['question']}")
+                logger.info(f"  - [{r['test_id']}] {r['question']}")
                 if r.get("error"):
-                    print(f"    错误: {r['error']}")
+                    logger.info(f"    错误: {r['error']}")
     
     # 保存详细报告到文件
     report_file = "test_report.json"
@@ -151,7 +152,7 @@ def run_tests():
             "results": results
         }, f, ensure_ascii=False, indent=2)
     
-    print(f"\n详细报告已保存到: {report_file}")
+    logger.info(f"\n详细报告已保存到: {report_file}")
     
     return success == total
 
