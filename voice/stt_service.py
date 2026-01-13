@@ -6,7 +6,6 @@
 import os
 import logging
 from typing import Optional
-from config.config import logger
 
 logging.getLogger("funasr.utils.cli_utils").disabled = True
 
@@ -16,7 +15,7 @@ try:
     FUNASR_AVAILABLE = True
 except ImportError:
     FUNASR_AVAILABLE = False
-    logger.warning("警告：未安装 funasr，STT 服务不可用")
+    print("警告：未安装 funasr，STT 服务不可用")
 
 
 class STTService:
@@ -38,17 +37,17 @@ class STTService:
         if FUNASR_AVAILABLE:
             self._init_model()
         else:
-            logger.warning("FunASR 不可用，跳过模型初始化")
+            print("FunASR 不可用，跳过模型初始化")
 
     def _init_model(self):
         if not os.path.exists(self.model_dir):
-            logger.warning(f"STT 模型路径不存在: {self.model_dir}")
+            print(f"STT 模型路径不存在: {self.model_dir}")
             return
         if not os.path.exists(self.vad_model):
-            logger.warning(f"VAD 模型路径不存在: {self.vad_model}")
+            print(f"VAD 模型路径不存在: {self.vad_model}")
             return
 
-        logger.info("正在初始化 FunASR 语音识别模型...")
+        print("正在初始化 FunASR 语音识别模型...")
         try:
             self.model = AutoModel(
                 model=self.model_dir,
@@ -62,9 +61,9 @@ class STTService:
                 log_level="ERROR",
             )
             self.initialized = True
-            logger.info("FunASR 语音识别模型初始化完成")
+            print("FunASR 语音识别模型初始化完成")
         except Exception as e:
-            logger.error(f"FunASR 模型初始化失败: {e}")
+            print(f"FunASR 模型初始化失败: {e}")
             self.initialized = False
 
     def is_available(self) -> bool:
@@ -80,7 +79,7 @@ class STTService:
         if not self.is_available():
             return ""
         if not os.path.exists(audio_path):
-            logger.warning(f"音频文件不存在: {audio_path}")
+            print(f"音频文件不存在: {audio_path}")
             return ""
 
         try:
@@ -99,7 +98,7 @@ class STTService:
             text = rich_transcription_postprocess(result[0]["text"])
             return text.strip()
         except Exception as e:
-            logger.error(f"语音识别失败: {e}")
+            print(f"语音识别失败: {e}")
             return ""
 
 

@@ -2,7 +2,6 @@ import json
 import time
 import requests
 from typing import Dict
-from config.config import logger
 
 
 class LLMClient:
@@ -62,7 +61,7 @@ class LLMClient:
             except requests.exceptions.RequestException as e:
                 last_exception = e
                 # 连接被远程主机重置等网络类错误，稍等后重试
-                logger.warning(f"警告：第 {attempt} 次调用 LLM 接口失败：{e}")
+                print(f"\n警告：第 {attempt} 次调用 LLM 接口失败：{e}")
                 if attempt == max_retries:
                     # 重试多次仍失败，向上抛出，让上层捕获并展示错误
                     raise

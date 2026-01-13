@@ -268,6 +268,10 @@ function renderDetails(questionId, result) {
                         <span class="detail-label">描述:</span>
                         <span class="detail-value">${escapeHtml(result.template_info.description || 'N/A')}</span>
                     </div>
+                    <div class="detail-row">
+                        <span class="detail-label">匹配度:</span>
+                        <span class="detail-value">${(result.template_info.score || 0).toFixed(3)}</span>
+                    </div>
                     ${result.template_info.params ? `
                     <div class="detail-row">
                         <span class="detail-label">参数:</span>
