@@ -1,11 +1,8 @@
 import json
 from typing import Dict, List
-import logging
 
 from model.llm_client import LLMClient
-
-# 配置logging
-logger = logging.getLogger(__name__)
+from config.config import logger
 
 
 class Summarizer:

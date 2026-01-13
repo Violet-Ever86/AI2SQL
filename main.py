@@ -6,16 +6,12 @@ from sql.sql_field_replacer import SQLFieldReplacer
 from model.summarizer import Summarizer
 from model.llm_client import LLMClient
 from data.database import Database
-from config.config import params
+from config.config import params, logger
 from typing import Dict
 import json
 import sys
 import re
 import os
-import logging
-
-# 配置logging
-logger = logging.getLogger(__name__)
 
 
 class AI2SQLService:
@@ -63,14 +59,15 @@ class AI2SQLService:
         if not self.schema:
             logger.warning("警告：schema_prompt.txt 为空，请先填入三张表的结构。")
 
-    def query(self, question: str, verbose: bool = True, collect_logs: bool = False,
+    def query(self, question: str, collect_logs: bool = False,
               skip_summary: bool = False) -> Dict:
         """
         处理单个查询问题
         
         Args:
             question: 自然语言问题
-            verbose: 是否打印详细信息（默认True）
+            collect_logs: 是否收集日志（默认False）
+            skip_summary: 是否跳过总结生成（默认False）
         
         Returns:
             包含查询结果的字典：
@@ -99,8 +96,7 @@ class AI2SQLService:
         def log(message):
             if collect_logs:
                 result["logs"].append(message)
-            if verbose:
-                logger.info(message)
+            logger.info(message)
 
         try:
             # 生成SQL提示词
@@ -298,7 +294,7 @@ class AI2SQLService:
 
         return result
 
-    def query_with_retries(self, question: str, verbose: bool = True, collect_logs: bool = False,
+    def query_with_retries(self, question: str, collect_logs: bool = False,
                            max_retries: int = 3, skip_summary: bool = False) -> Dict:
         """
         带整体重试机制的查询：
@@ -309,21 +305,19 @@ class AI2SQLService:
         attempt_count = 0
         for attempt in range(1, max_retries + 1):
             attempt_count = attempt
-            if verbose:
-                logger.info(f"\n=== 第 {attempt} 次尝试执行查询 ===")
-            result = self.query(question, verbose=verbose, collect_logs=collect_logs, skip_summary=skip_summary)
+            logger.info(f"\n=== 第 {attempt} 次尝试执行查询 ===")
+            result = self.query(question, collect_logs=collect_logs, skip_summary=skip_summary)
             last_result = result
 
             # 如果本轮查询失败（包括大模型错误、SQL 生成错误、数据库错误等），且还有重试机会，继续重试
             if not result.get("success"):
-                if attempt < max_retries and verbose:
+                if attempt < max_retries:
                     logger.info("本次查询处理失败，将重新尝试...")
                 continue
 
             # 到这里说明：本次查询成功（包括成功调用大模型并生成SQL、成功执行数据库查询、成功生成总结）→ 直接返回
             result["attempts"] = attempt_count
-            if verbose:
-                logger.info(f"查询在第 {attempt} 次尝试时获得了有效结果。")
+            logger.info(f"查询在第 {attempt} 次尝试时获得了有效结果。")
             return result
 
         # 所有尝试都未获得成功结果，返回最后一次结果，并标记尝试次数
@@ -356,7 +350,7 @@ class AI2SQLService:
                     break
 
                 # 处理查询（带整体重试机制）
-                result = self.query_with_retries(question, verbose=True)
+                result = self.query_with_retries(question)
 
                 # 如果失败，显示错误信息
                 if not result["success"]:
@@ -380,7 +374,7 @@ def main():
     
     # 如果命令行提供了问题，使用带重试机制的查询后退出
     if params.question:
-        result = service.query_with_retries(params.question, verbose=True)
+        result = service.query_with_retries(params.question)
         if not result["success"]:
             sys.exit(1)
     else:

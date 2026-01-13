@@ -6,15 +6,8 @@ from datetime import datetime
 import uuid
 import os
 import tempfile
-import logging
+from config.config import logger
 from threading import Thread
-
-# 配置logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 CORS(app)
@@ -137,7 +130,7 @@ def query():
         
         # 调用服务查询（收集日志，带整体重试机制），此处跳过总结生成，加快首屏返回
         # 当本次查询出现错误（包括SQL未通过校验等）时，会自动重新调用大模型，最多尝试3次
-        result = service.query_with_retries(question, verbose=False, collect_logs=True, skip_summary=True)
+        result = service.query_with_retries(question, collect_logs=True, skip_summary=True)
         
         # 存储日志
         query_logs[query_id] = {

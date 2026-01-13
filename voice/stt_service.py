@@ -6,7 +6,9 @@
 import os
 import logging
 from typing import Optional
+from config.config import logger
 
+# 禁用funasr的cli_utils日志
 logging.getLogger("funasr.utils.cli_utils").disabled = True
 
 try:
