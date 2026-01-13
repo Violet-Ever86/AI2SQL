@@ -40,11 +40,11 @@
                 <div class="suggestion-item" data-question="罗康康的跟班和带班记录">
                     <span class="suggestion-text">询问罗康康的跟班和带班记录？</span>
                 </div>
-                <div class="suggestion-item" data-question="查询所有员工的考勤信息">
-                    <span class="suggestion-text">查询所有员工的考勤信息？</span>
+                <div class="suggestion-item" data-question="BM-00281项目2025年十月份领导的带班情况">
+                    <span class="suggestion-text">BM-00281项目2025年十月份领导的带班情况</span>
                 </div>
-                <div class="suggestion-item" data-question="统计本月的工作时长">
-                    <span class="suggestion-text">统计本月的工作时长？</span>
+                <div class="suggestion-item" data-question=" 2025年三月份，哪个项目里的工作次数最多？请按项目统计每个项目的总次数，并按次数从高到低排序，取前 20 名，分给给出他们的带班和跟班次数">
+                    <span class="suggestion-text"> 2025年三月份，哪个项目里的工作次数最多？请按项目统计每个项目的总次数，并按次数从高到低排序，取前 20 名，分给给出他们的带班和跟班次数？</span>
                 </div>
             </div>
         </aside>
@@ -66,12 +66,13 @@
 
                 <!-- 查询结果区域 -->
                 <div id="results" class="results" style="display: none;">
-                    <!-- 总结部分（优先显示） -->
+                    <!-- 总结部分（支持折叠，默认折叠，等异步总结完成后自动展开） -->
                     <div class="result-card summary-card">
-                        <div class="card-header">
+                        <div class="card-header collapsible" onclick="toggleSection('summary')">
                             <h1>查询总结</h1>
+                            <span class="toggle-icon" id="summary-toggle">▼</span>
                         </div>
-                        <div class="card-content">
+                        <div class="card-content" id="summary-content" style="display: none;">
                             <div id="summary-text"></div>
                         </div>
                     </div>
