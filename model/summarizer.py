@@ -1,7 +1,11 @@
 import json
 from typing import Dict, List
+import logging
 
 from model.llm_client import LLMClient
+
+# 配置logging
+logger = logging.getLogger(__name__)
 
 
 class Summarizer:
@@ -59,8 +63,8 @@ class Summarizer:
                     使用建议：
                     - 如果数据适合可视化（如有多组对比数据、时间序列、占比关系），可以在summaryContent或keyInfo中插入图表指令
                     - 图表指令必须是有效的JSON对象，可以直接嵌入在文本中
-                    - 确保data数组中的value是数字类型
                     - 图表应该与文本内容相关，帮助说明数据特点
+                    - 图表不是一定要出现，如果数据不需要可视化就不用出图
                     
                     请根据上述查询结果，以JSON格式返回总结，格式如下：
                     {{
@@ -83,18 +87,23 @@ class Summarizer:
                     
                     要求：
                     - 必须返回有效的JSON格式，不要包含其他文字说明
+                    - 自我检查下你的内容和数据对应吗，比如
                     - summaryContent：简要回答用户问题，说明查询结果的核心信息
                     - keyInfo：说明数据的时间范围、关键数值、重要发现等关键信息
                     - recordOverview：说明数据的总数、数据范围、是否显示完整等概览信息
                     - charts：图表数组（可选），如果数据适合可视化，可以添加图表配置
                       - 每个图表对象包含：type（图表类型）、title（图表标题）、data（数据数组）
-                      - data数组中每个元素包含：label（标签）和value（数值）
+                      - data数组中每个元素包含：label（标签，字符串类型）和value（数值，必须是数字类型）
+                      - 【重要】value字段必须是纯数字类型（number），不能是字符串，不能包含逗号、空格等格式符号
+                      - 例如：如果天数是2.5，value应该是 2.5 而不是 "2.5" 或 "2,5"
+                      - 例如：如果数量是1000，value应该是 1000 而不是 "1000" 或 "1,000"
+                      - 如果数据源中有带格式的数字（如"2,5"表示2.5），需要先转换为纯数字再填入value字段
                       - 如果不需要图表，charts可以设置为空数组[]
                     - 如果某个字段没有内容，可以设置为空字符串
                     - 所有内容都用中文回答"""
 
         response = self.llm_client.complete(prompt, max_tokens=10000, temperature=0.2)
-        print("[LLM总结] LLM调用完成")
+        logger.info("[LLM总结] LLM调用完成")
         # 尝试解析JSON响应
         try:
             # 移除可能的markdown代码块标记
@@ -121,17 +130,20 @@ class Summarizer:
                 "recordOverview": summary_dict.get("recordOverview", ""),
                 "charts": summary_dict.get("charts", [])  # 图表数组
             }
-            print("[LLM总结] 总结生成完成")
+            logger.info("[LLM总结] 总结生成完成")
+            logger.debug(f"记录概览: {result['recordOverview']}")
+            logger.debug(f"关键信息: {result['keyInfo']}")
 
             return result
 
         except (json.JSONDecodeError, ValueError) as e:
             # 如果解析失败，返回默认结构，将原始响应作为总结内容
-            print("[LLM总结] 总结生成完成（JSON解析失败，使用原始响应）")
+            logger.warning("[LLM总结] 总结生成完成（JSON解析失败，使用原始响应）")
             return {
                 "summaryContent": response,
                 "keyInfo": "",
-                "recordOverview": ""
+                "recordOverview": "",
+                "charts": []
             }
 
 

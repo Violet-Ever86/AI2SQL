@@ -6,6 +6,15 @@ from datetime import datetime
 import uuid
 import os
 import tempfile
+import logging
+from threading import Thread
+
+# 配置logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 CORS(app)
@@ -15,6 +24,26 @@ service = AI2SQLService()
 
 # 存储查询日志（使用字典，key为查询ID）
 query_logs = {}
+
+# 存储查询结果和总结状态（用于前后端分步展示）
+query_results = {}   # query_id -> {"question": str, "sql": str, "rows": list}
+query_summaries = {}  # query_id -> {"status": "pending"|"done"|"error", "summary": dict, "error": str | None}
+
+def _run_summary_async(query_id: str, question: str, sql: str, rows):
+    """在后台线程中生成总结，避免阻塞主查询接口"""
+    try:
+        summary_dict = service.summarizer.summarize(question, sql, rows)
+        query_summaries[query_id] = {
+            "status": "done",
+            "summary": summary_dict,
+            "error": None,
+        }
+    except Exception as e:
+        query_summaries[query_id] = {
+            "status": "error",
+            "summary": {"summaryContent": "", "keyInfo": "", "recordOverview": "", "charts": []},
+            "error": str(e),
+        }
 
 # 尝试初始化语音识别服务（可选）
 speech_service = None
@@ -43,13 +72,13 @@ try:
         from voice.stt_service import get_stt_service
         speech_service = get_stt_service(model_dir, vad_model, device=device)
         if speech_service.is_available():
-            print(f"语音识别服务已初始化，模型: {model_dir}, VAD: {vad_model}, 设备: {device}")
+            logger.info(f"语音识别服务已初始化，模型: {model_dir}, VAD: {vad_model}, 设备: {device}")
         else:
-            print("语音识别服务初始化失败，请检查模型路径或依赖")
+            logger.warning("语音识别服务初始化失败，请检查模型路径或依赖")
     else:
-        print("未配置 FunASR 模型路径，将使用浏览器原生语音识别")
+        logger.info("未配置 FunASR 模型路径，将使用浏览器原生语音识别")
 except Exception as e:
-    print(f"语音识别服务初始化失败: {e}")
+    logger.error(f"语音识别服务初始化失败: {e}")
     speech_service = None
 
 
@@ -106,9 +135,9 @@ def query():
         # 生成查询ID
         query_id = str(uuid.uuid4())
         
-        # 调用服务查询（收集日志，带整体重试机制）
+        # 调用服务查询（收集日志，带整体重试机制），此处跳过总结生成，加快首屏返回
         # 当本次查询出现错误（包括SQL未通过校验等）时，会自动重新调用大模型，最多尝试3次
-        result = service.query_with_retries(question, verbose=False, collect_logs=True)
+        result = service.query_with_retries(question, verbose=False, collect_logs=True, skip_summary=True)
         
         # 存储日志
         query_logs[query_id] = {
@@ -121,15 +150,40 @@ def query():
             "error": result.get("error"),
             "attempts": result.get("attempts", 1),
         }
+
+        # 如果本次查询成功，缓存查询结果，并异步生成总结
+        if result.get("success"):
+            sql = result.get("sql", "")
+            rows = result.get("rows", [])
+            query_results[query_id] = {
+                "question": question,
+                "sql": sql,
+                "rows": rows,
+            }
+            # 初始化总结状态为 pending
+            query_summaries[query_id] = {
+                "status": "pending",
+                "summary": {"summaryContent": "", "keyInfo": "", "recordOverview": "", "charts": []},
+                "error": None,
+            }
+            # 启动后台线程生成总结
+            worker = Thread(target=_run_summary_async, args=(query_id, question, sql, rows), daemon=True)
+            worker.start()
         
         # 返回结果（包含查询ID用于后续查看日志）
-        # summary现在是字典格式：{"summaryContent": "...", "keyInfo": "...", "recordOverview": "..."}
+        # 此处 summary 仅返回占位结构，真实总结通过 /api/query-summary 轮询获取
         return jsonify({
             "success": result["success"],
             "question": result["question"],
             "sql": result["sql"],
             "rows": result["rows"],
-            "summary": result.get("summary", {}),  # 结构化summary字典
+            "summary": query_summaries.get(query_id, {}).get("summary", {
+                "summaryContent": "",
+                "keyInfo": "",
+                "recordOverview": "",
+                "charts": [],
+            }),
+            "summary_status": query_summaries.get(query_id, {}).get("status", "pending"),
             "error": result.get("error"),
             "query_id": query_id,
             "template_info": result.get("template_info"),
@@ -161,6 +215,34 @@ def get_query_logs(query_id):
         return jsonify({
             "success": False,
             "error": f"获取日志失败: {str(e)}"
+        }), 500
+
+
+@app.route('/api/query-summary/<query_id>', methods=['GET'])
+def get_query_summary(query_id):
+    """获取指定查询的总结结果（异步轮询）"""
+    try:
+        if query_id not in query_summaries:
+            return jsonify({
+                "success": False,
+                "status": "not_found",
+                "error": "查询ID不存在或已过期",
+                "summary": {"summaryContent": "", "keyInfo": "", "recordOverview": "", "charts": []},
+            }), 404
+
+        info = query_summaries[query_id]
+        return jsonify({
+            "success": info["status"] == "done",
+            "status": info["status"],
+            "summary": info.get("summary", {"summaryContent": "", "keyInfo": "", "recordOverview": "", "charts": []}),
+            "error": info.get("error"),
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "status": "error",
+            "error": f"获取总结失败: {str(e)}",
+            "summary": {"summaryContent": "", "keyInfo": "", "recordOverview": "", "charts": []},
         }), 500
 
 
@@ -229,7 +311,7 @@ def speech_recognize():
                 )
                 use_path = converted_path
             except Exception as conv_err:
-                print(f"音频转码失败，将直接使用原文件: {conv_err}")
+                logger.warning(f"音频转码失败，将直接使用原文件: {conv_err}")
                 use_path = tmp_path
         else:
             use_path = tmp_path
