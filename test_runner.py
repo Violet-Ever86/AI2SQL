@@ -93,7 +93,7 @@ def run_tests():
         print(f"{'='*80}")
         
         try:
-            result = service.query(question, verbose=False)
+            result = service.query(question)
             results.append({
                 "test_id": test_id,
                 "question": question,
