@@ -10,7 +10,7 @@ else:
 
 
 work_space = pathlib.Path(__file__).parent.parent
-parser.add_argument("--work-space", type=pathlib.Path, default=work_space, help="工作目录")
+parser.add_argument("--work_space", type=pathlib.Path, default=work_space, help="工作目录")
 
 params = parser.parse_args()
 

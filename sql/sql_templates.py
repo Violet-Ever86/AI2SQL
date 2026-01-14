@@ -1,6 +1,6 @@
 """SQL模板定义和管理模块"""
 
-from sql.sql_template_sql import SQL_TEMPLATE_SQL
+from sql.sql_dict import SQL_DICT
 
 # SQL 模板定义：每个模板包含ID、描述、SQL模板（用 {参数} 占位）、必需参数列表
 SQL_TEMPLATES = [
@@ -8,37 +8,37 @@ SQL_TEMPLATES = [
     {
         "id": "M1",
         "desc": "模板1：查询指定人员的带班记录（通过姓名，按时间倒序，限制条数）",
-        "sql": SQL_TEMPLATE_SQL["M1"],
+        "sql": SQL_DICT["M1"],
         "required_params": ["person_name"],  # 必需参数列表
     },
     {
         "id": "M2",
         "desc": "模板2：查询指定人员的跟班记录（通过姓名，按时间倒序，限制条数）",
-        "sql": SQL_TEMPLATE_SQL["M2"],
+        "sql": SQL_DICT["M2"],
         "required_params": ["person_name"],  # 必需参数列表
     },
     {
         "id": "M3",
         "desc": "模板3：查询指定人员的带班+跟班工作记录（通过姓名，合并结果按时间倒序）",
-        "sql": SQL_TEMPLATE_SQL["M3"],
+        "sql": SQL_DICT["M3"],
         "required_params": ["person_name"],  # 必需参数列表
     },
     {
         "id": "M4",
         "desc": "查询人员信息表中某人的详细信息（通过姓名）",
-        "sql": SQL_TEMPLATE_SQL["M4"],
+        "sql": SQL_DICT["M4"],
         "required_params": ["person_name"],  # 必需参数列表
     },
     {
         "id": "M5",
         "desc": "模板5：查询指定班组的跟班记录（通过班组名称，按时间倒序，限制条数）",
-        "sql": SQL_TEMPLATE_SQL["M5"],
+        "sql": SQL_DICT["M5"],
         "required_params": ["team_name"],  # 必需参数列表
     },
     {
         "id": "M6",
         "desc": "模板6：查询管控计划的具体内容，通过日期和单元名称（即地点）",
-        "sql": SQL_TEMPLATE_SQL["M6"],
+        "sql": SQL_DICT["M6"],
         "required_params": ["date", "unit_name"],  # 必需参数列表
     },
 ]

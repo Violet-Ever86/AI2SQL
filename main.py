@@ -101,8 +101,6 @@ class AI2SQLService:
         try:
             # 生成SQL提示词
             prompt = self.sql_generator.build_sql_prompt(question, self.schema)
-            # 增加 max_tokens 以确保输出完整（JSON响应通常需要更多token）
-            # 注意：这里的 max_tokens 只是客户端请求上限，服务端如果还有更小的限制，仍需在LLM服务配置中调整
             llm_output = self.llm_client.complete(prompt, max_tokens=10000)
             
             # 检查输出是否完整
@@ -123,7 +121,7 @@ class AI2SQLService:
 
             # 尝试提取模板信息用于显示
             try:
-                template_id, params_dict, _free_sql, _template_score = self.sql_generator.extract_template_and_params(llm_output)
+                template_id, params_dict, _free_sql = self.sql_generator.extract_template_and_params(llm_output)
 
                 # 只有在不是自由模式时才从模板管理器中取描述
                 if template_id and template_id.lower() != "free":
@@ -189,7 +187,7 @@ class AI2SQLService:
 
                     # 重新解析模板信息（仅用于展示，容错逻辑保持不变）
                     try:
-                        template_id, params_dict, _free_sql, _template_score = self.sql_generator.extract_template_and_params(llm_output)
+                        template_id, params_dict, _free_sql = self.sql_generator.extract_template_and_params(llm_output)
                         if template_id and template_id.lower() != "free":
                             template = self.template_manager.get_template(template_id)
                             result["template_info"] = {

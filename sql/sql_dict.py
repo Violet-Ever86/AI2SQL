@@ -1,7 +1,7 @@
 """SQL模板的SQL语句映射表。"""
 
 # 每个模板ID对应的原始SQL字符串（M1~M6）
-SQL_TEMPLATE_SQL = {
+SQL_DICT = {
     # M1：按姓名查询带班记录（只要日期和工序，按时间倒序）
     "M1": """SELECT b.带班日期, b.带班作业工序及地点
 FROM 带班作业记录表 AS b
