@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
 from main import AI2SQLService
-import test_runner
+from test import test_runner
 from datetime import datetime
 import uuid
 import os
