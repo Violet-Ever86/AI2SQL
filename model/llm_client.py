@@ -1,86 +1,55 @@
-import json
-import time
+from config.config import params, logger
+from llm_tools import tool_list
 import requests
-from typing import Dict
 
 
 class LLMClient:
-    """LLM客户端类，负责与LLM API交互"""
+    # 使用config的通用模型配置实现交互功能
+    def __init__(self, description, params=params):
+        # 用以描述模型类别
+        self.description = description
 
-    def __init__(self, endpoint: str, model: str, api_key: str = "", api_type: str = "completion"):
-        """
-        api_type:
-          - "completion": OpenAI /v1/completions （payload 使用 prompt）
-          - "chat": OpenAI /v1/chat/completions （payload 使用 messages）
-        """
-        self.base_endpoint = endpoint.rstrip("/")
-        self.model = model
-        self.api_key = api_key
-        self.api_type = api_type
+        self.llm_url = params.llm_url
+        self.llm_model = params.llm_model
+        self.llm_api_key = params.llm_api_key
 
-    def _url(self) -> str:
-        """构建API URL"""
-        # 如果用户给了完整路径就用之，否则补默认路径
-        if self.base_endpoint.endswith("/v1/completions") or self.base_endpoint.endswith("/v1/chat/completions"):
-            return self.base_endpoint
-        if self.api_type == "chat":
-            return f"{self.base_endpoint}/v1/chat/completions"
-        return f"{self.base_endpoint}/v1/completions"
+        self.context = []
 
-    def complete(self, prompt: str, max_tokens: int = 10000, temperature: float = 0.2) -> str:
-        """调用LLM API完成文本生成"""
-        headers = {"Content-Type": "application/json"}
-        if self.api_key:
-            headers["Authorization"] = f"Bearer {self.api_key}"
+    def response(self, query: str, tool_names: list[str]):
+        # 根据上下文与工具构建请求体并生成回复
+        self.remember("user", query)
 
-        url = self._url()
-        if self.api_type == "chat":
-            payload = {
-                "model": self.model,
-                "messages": [{"role": "user", "content": prompt}],
-                "max_tokens": max_tokens,
-                "temperature": temperature,
-            }
-        else:
-            payload = {
-                "model": self.model,
-                "prompt": prompt,
-                "max_tokens": max_tokens,
-                "temperature": temperature,
-            }
+        payload = {
+            "model": self.llm_model,
+            "messages": self.context,
+            "tools": self.tool_add(tool_names),
+        }
 
-        # 为LLM请求增加简单的重试机制，缓解偶发的连接被远程中断问题
-        max_retries = 3
-        last_exception = None
-        for attempt in range(1, max_retries + 1):
-            try:
-                resp = requests.post(url, json=payload, headers=headers, timeout=60)
-                resp.raise_for_status()
-                data = resp.json()
-                break
-            except requests.exceptions.RequestException as e:
-                last_exception = e
-                # 连接被远程主机重置等网络类错误，稍等后重试
-                print(f"\n警告：第 {attempt} 次调用 LLM 接口失败：{e}")
-                if attempt == max_retries:
-                    # 重试多次仍失败，向上抛出，让上层捕获并展示错误
-                    raise
-                time.sleep(1.0)
+        headers = {
+            "Authorization": f"Bearer {self.llm_api_key}",
+            "Content-Type": "application/json"
+        }
 
-        if isinstance(data, dict):
-            choices = data.get("choices") or []
-            if choices:
-                first = choices[0]
-                if self.api_type == "chat":
-                    if isinstance(first, dict) and "message" in first and isinstance(first["message"], dict):
-                        return first["message"].get("content", "")
-                else:
-                    if isinstance(first, dict) and "text" in first:
-                        return first["text"]
+        response = requests.post(self.llm_url, json=payload, headers=headers).json()
+        self.remember("assistant", response)
+        return response.json()
 
-        # Fallback to raw text response.
-        if isinstance(data, str):
-            return data
-        return json.dumps(data, ensure_ascii=False)
+    def remember(self, role: str, content: str):
+        self.context.append({role: content})
 
+    def tool_add(self, tool_names: list[str]):
+        tool_dict = tool_list
 
+        tools = []
+        for tool_name in tool_names:
+            tools.append(
+                {
+                    "type": "function",
+                    "function": {
+                        "name": tool_name,
+                        "description": tool_dict[tool_name]["description"],
+                        "parameters": tool_dict[tool_name]["parameters"]
+                    }
+                }
+            )
+        return tools
