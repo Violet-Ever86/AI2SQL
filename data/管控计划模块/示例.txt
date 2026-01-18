@@ -1,0 +1,12 @@
+        示例：
+        user：罗康康的跟班记录？
+        assistant：调用工具 select_templates(id="M2", params={"person_name": "罗康康"})
+
+        user：王飞最近做了什么？
+        assistant：调用工具 select_templates(id="M3", params={"person_name": "王飞"})
+
+        user：班组武汉化工的跟班作业？
+        assistant：调用工具 select_templates(id="M5", params={"team_name": "武汉化工"})
+
+        user：2025年3月5号路基L21的管控计划详情？
+        assistant：调用工具 select_templates(id="M6", params={"date": "2025-03-05", "unit_name": "路基L21"})
