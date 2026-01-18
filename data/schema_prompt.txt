@@ -83,7 +83,7 @@
 
 表名: 责任单元字典
 字段:
-- ID (int)
+- ID (int)·
 - 自动编号 (string)
 - 排序 (int)
 - 所属项目 (string)
