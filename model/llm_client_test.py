@@ -2,13 +2,15 @@ import requests
 import argparse
 
 parser = argparse.ArgumentParser(description="生产环境参数配置")
-# 大模型配置
-parser.add_argument('--llm_url', default='https://ai-api.crec.cn/v1', help='LLM API端点')
-# parser.add_argument('--llm_url', default='http://10.84.9.9:65530/v1/chat-messages', help='LLM API端点')
-parser.add_argument('--llm_model',   default='DeepSeek-V3.1:671B', help='LLM模型名称')
-# parser.add_argument('--llm_api_key', default='app-fBXKA9AHjcRjW9rxi7EeJUSn', help='LLM API密钥')
-parser.add_argument('--llm_api_key', default='sk-ypyAh4NQw0DT95UGcHlRlHyDV76zKEmg8wZuXkNQpwV4V4LF', help='LLM API密钥')
-parser.add_argument('--llm_api_type',default='chat', choices=['completion','chat'], help='LLM API类型')
+# 大模型配置（OpenAI 兼容格式）
+parser.add_argument(
+    '--llm_url',
+    default='https://ai-api.crec.cn/v1/chat/completions',
+    help='LLM API端点（OpenAI chat completions）'
+)
+parser.add_argument('--llm_model', default='deepseek-chat', help='LLM模型名称（model id）')
+parser.add_argument('--llm_api_key',default="sk-ypyAh4NQw0DT95UGcHlRlHyDV76zKEmg8wZuXkNQpwV4V4LF", help='LLM API密钥')
+parser.add_argument('--llm_api_type', default='chat', choices=['completion', 'chat'], help='LLM API类型')
 
 params = parser.parse_args()
 
@@ -27,7 +29,12 @@ class LLMClient:
 
         payload = {
             "model": self.llm_model,
-            "messages": {"user": query},
+            "messages": [
+                {
+                    "role": "user",
+                    "content": query
+                }
+            ],
         }
 
         headers = {
@@ -35,10 +42,11 @@ class LLMClient:
             "Content-Type": "application/json"
         }
 
-        response = requests.post(self.llm_url, json=payload, headers=headers).json()
+        response = requests.post(self.llm_url, json=payload, headers=headers)
+        response.raise_for_status()
         return response.json()
 
 
 if __name__ == '__main__':
     test_agent = LLMClient("测试", params=params)
-    test_agent.response("你好")
+    print(test_agent.response("你好"))

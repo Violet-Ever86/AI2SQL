@@ -9,11 +9,16 @@ class LLMClient:
         # 用以描述模型类别
         self.description = description
 
+        # 模型基础配置
         self.llm_url = params.llm_url
         self.llm_model = params.llm_model
         self.llm_api_key = params.llm_api_key
 
+        # 上下文
         self.context = []
+
+        # 个性化工具
+        self.allow_tools = []
 
     def response(self, query: str, tool_names: list[str]):
         # 根据上下文与工具构建请求体并生成回复
@@ -53,3 +58,7 @@ class LLMClient:
                 }
             )
         return tools
+
+if __name__ == '__main__':
+    test_agent = LLMClient("测试", params=params)
+    test_agent.response("你好")

@@ -10,8 +10,10 @@ parser.add_argument('--db_password', default='dnDNn32_mdn133*', help='数据库�
 parser.add_argument('--db_name', default='aqcts', help='数据库名称')
 
 # 大模型配置
-parser.add_argument('--llm_endpoint', default='https://ai-api.crec.cn/v1', help='LLM API端点')
+# parser.add_argument('--llm_endpoint', default='https://ai-api.crec.cn/v1', help='LLM API端点')
+parser.add_argument('--llm_url', default='http://10.84.9.9:65510/v1/chat-messages', help='LLM API端点')
 parser.add_argument('--llm_model',   default='DeepSeek-V3.1:671B', help='LLM模型名称')
-parser.add_argument('--llm_api_key', default='sk-ypyAh4NQw0DT95UGcHlRlHyDV76zKEmg8wZuXkNQpwV4V4LF', help='LLM API密钥')
+# parser.add_argument('--llm_api_key', default='sk-ypyAh4NQw0DT95UGcHlRlHyDV76zKEmg8wZuXkNQpwV4V4LF', help='LLM API密钥')
+parser.add_argument('--llm_api_key', default='app-fBXKA9AHjcRjW9rxi7EeJUSn', help='LLM API密钥')
 parser.add_argument('--llm_api_type',default='chat', choices=['completion','chat'], help='LLM API类型')
 

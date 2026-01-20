@@ -2,7 +2,7 @@ import pathlib
 import logging
 import sys 
 
-env = "development"
+env = "production"
 if env == "production":
     from config.production_config import parser
 else:
